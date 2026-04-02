@@ -1,4 +1,11 @@
+import dotenv from 'dotenv';
+import path from 'path';
 import { z } from 'zod';
+
+// Load .env from project root
+import { fileURLToPath } from 'url';
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+dotenv.config({ path: path.resolve(__dirname, '../../../../.env') });
 
 const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
@@ -10,8 +17,8 @@ const envSchema = z.object({
   JWT_REFRESH_EXPIRY: z.string().default('7d'),
   SMTP_HOST: z.string().default('ssl0.ovh.net'),
   SMTP_PORT: z.coerce.number().default(465),
-  SMTP_USER: z.string().email(),
-  SMTP_PASS: z.string(),
+  SMTP_USER: z.string(),
+  SMTP_PASS: z.string().default(''),
   SMTP_FROM: z.string().default('Resa Esviere <noreply@fondacio.fr>'),
   FRONTEND_URL: z.string().url().default('http://localhost:5173'),
   UPLOAD_DIR: z.string().default('./uploads'),
