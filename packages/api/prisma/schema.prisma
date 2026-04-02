@@ -1,0 +1,221 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Enums ───────────────────────────────────────────
+
+enum Role {
+  membre
+  admin
+}
+
+enum Etat {
+  bon
+  usage
+  a_reparer
+  hors_service
+}
+
+enum PerimetreUtilisation {
+  libre
+  sur_le_site
+  sur_place
+}
+
+enum TypeItem {
+  equipement
+  consommable
+}
+
+enum StatutReservation {
+  en_attente
+  validee
+  refusee
+  annulee
+  terminee
+}
+
+enum TypeMouvement {
+  sortie
+  retour
+  consommation
+}
+
+enum TypeRessource {
+  materiel
+  salle
+  vehicule
+}
+
+// ─── Utilisateurs ────────────────────────────────────
+
+model Utilisateur {
+  id           Int      @id @default(autoincrement())
+  nom          String   @db.VarChar(100)
+  prenom       String   @db.VarChar(100)
+  email        String   @unique @db.VarChar(255)
+  motDePasse   String   @map("mot_de_passe")
+  role         Role     @default(membre)
+  actif        Boolean  @default(true)
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  resetToken       String?   @unique @map("reset_token")
+  resetTokenExpiry DateTime? @map("reset_token_expiry")
+
+  reservations Reservation[]
+  mouvements   Mouvement[]
+  auditLogs    AuditLog[]
+
+  @@map("utilisateurs")
+}
+
+// ─── Inventaire ──────────────────────────────────────
+
+model Categorie {
+  id              Int             @id @default(autoincrement())
+  nom             String          @unique @db.VarChar(100)
+  sousCategories  SousCategorie[]
+  items           Item[]
+
+  @@map("categories")
+}
+
+model SousCategorie {
+  id          Int       @id @default(autoincrement())
+  nom         String    @db.VarChar(100)
+  categorieId Int       @map("categorie_id")
+  categorie   Categorie @relation(fields: [categorieId], references: [id])
+  items       Item[]
+
+  @@unique([categorieId, nom])
+  @@map("sous_categories")
+}
+
+model Localisation {
+  id          Int     @id @default(autoincrement())
+  nom         String  @unique @db.VarChar(200)
+  estSurSite  Boolean @default(true) @map("est_sur_site")
+  description String? @db.VarChar(500)
+  items       Item[]
+
+  @@map("localisations")
+}
+
+model Item {
+  id                    Int                  @id @default(autoincrement())
+  resourceType          TypeRessource        @default(materiel) @map("resource_type")
+  nom                   String               @db.VarChar(200)
+  description           String?
+  categorieId           Int?                 @map("categorie_id")
+  categorie             Categorie?           @relation(fields: [categorieId], references: [id])
+  sousCategorieId       Int?                 @map("sous_categorie_id")
+  sousCategorie         SousCategorie?       @relation(fields: [sousCategorieId], references: [id])
+  quantiteStock         Int                  @default(1) @map("quantite_stock")
+  etat                  Etat                 @default(bon)
+  commentaireEtat       String?              @map("commentaire_etat") @db.VarChar(500)
+  localisationId        Int?                 @map("localisation_id")
+  localisation          Localisation?        @relation(fields: [localisationId], references: [id])
+  perimetreUtilisation  PerimetreUtilisation @default(libre) @map("perimetre_utilisation")
+  marquage              String?              @db.VarChar(200)
+  typeItem              TypeItem             @default(equipement) @map("type_item")
+  photoUrl              String?              @map("photo_url")
+  dateAcquisition       DateTime?            @map("date_acquisition")
+  valeurEstimee         Decimal?             @map("valeur_estimee") @db.Decimal(10, 2)
+  notes                 String?
+  actif                 Boolean              @default(true)
+  createdAt             DateTime             @default(now()) @map("created_at")
+  updatedAt             DateTime             @updatedAt @map("updated_at")
+
+  lignesReservation LigneReservation[]
+  mouvements        Mouvement[]
+
+  @@index([categorieId])
+  @@index([typeItem])
+  @@index([perimetreUtilisation])
+  @@map("items")
+}
+
+// ─── Reservations ────────────────────────────────────
+
+model Reservation {
+  id              Int                @id @default(autoincrement())
+  utilisateurId   Int                @map("utilisateur_id")
+  utilisateur     Utilisateur        @relation(fields: [utilisateurId], references: [id])
+  dateDebut       DateTime           @map("date_debut")
+  dateFin         DateTime           @map("date_fin")
+  motif           String             @db.VarChar(500)
+  lieuEvenement   String             @map("lieu_evenement") @db.VarChar(200)
+  estHorsSite     Boolean            @default(false) @map("est_hors_site")
+  statut          StatutReservation  @default(en_attente)
+  commentaireAdmin String?           @map("commentaire_admin")
+  createdAt       DateTime           @default(now()) @map("created_at")
+  updatedAt       DateTime           @updatedAt @map("updated_at")
+
+  lignes     LigneReservation[]
+  mouvements Mouvement[]
+
+  @@index([utilisateurId])
+  @@index([statut])
+  @@index([dateDebut, dateFin])
+  @@map("reservations")
+}
+
+model LigneReservation {
+  id                Int         @id @default(autoincrement())
+  reservationId     Int         @map("reservation_id")
+  reservation       Reservation @relation(fields: [reservationId], references: [id], onDelete: Cascade)
+  itemId            Int         @map("item_id")
+  item              Item        @relation(fields: [itemId], references: [id])
+  quantiteDemandee  Int         @map("quantite_demandee")
+
+  @@unique([reservationId, itemId])
+  @@index([itemId])
+  @@map("lignes_reservation")
+}
+
+// ─── Mouvements ──────────────────────────────────────
+
+model Mouvement {
+  id             Int            @id @default(autoincrement())
+  itemId         Int            @map("item_id")
+  item           Item           @relation(fields: [itemId], references: [id])
+  utilisateurId  Int            @map("utilisateur_id")
+  utilisateur    Utilisateur    @relation(fields: [utilisateurId], references: [id])
+  reservationId  Int?           @map("reservation_id")
+  reservation    Reservation?   @relation(fields: [reservationId], references: [id])
+  typeMouvement  TypeMouvement  @map("type_mouvement")
+  quantite       Int
+  dateEffective  DateTime       @default(now()) @map("date_effective")
+  etatConstate   Etat?          @map("etat_constate")
+  commentaire    String?        @db.VarChar(500)
+  createdAt      DateTime       @default(now()) @map("created_at")
+
+  @@index([itemId])
+  @@index([reservationId])
+  @@index([typeMouvement])
+  @@map("mouvements")
+}
+
+// ─── Audit ───────────────────────────────────────────
+
+model AuditLog {
+  id             Int         @id @default(autoincrement())
+  utilisateurId  Int         @map("utilisateur_id")
+  utilisateur    Utilisateur @relation(fields: [utilisateurId], references: [id])
+  action         String      @db.VarChar(100)
+  entiteType     String      @map("entite_type") @db.VarChar(50)
+  entiteId       Int?        @map("entite_id")
+  details        Json?
+  createdAt      DateTime    @default(now()) @map("created_at")
+
+  @@index([entiteType, entiteId])
+  @@index([utilisateurId])
+  @@index([createdAt])
+  @@map("audit_logs")
+}

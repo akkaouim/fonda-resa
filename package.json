@@ -1,0 +1,25 @@
+{
+  "name": "fonda-resa",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Logiciel de gestion du materiel — Tiers-lieu de l'Esviere, Fondacio Angers",
+  "license": "MIT",
+  "workspaces": [
+    "packages/shared",
+    "packages/api",
+    "packages/web"
+  ],
+  "scripts": {
+    "dev:api": "npm run dev -w packages/api",
+    "dev:web": "npm run dev -w packages/web",
+    "build:shared": "npm run build -w packages/shared",
+    "build:api": "npm run build -w packages/api",
+    "build:web": "npm run build -w packages/web",
+    "build": "npm run build:shared && npm run build:api && npm run build:web",
+    "lint": "npm run lint --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}
