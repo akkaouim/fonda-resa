@@ -151,7 +151,7 @@ export default function ImportWizard({ onImport, isLoading, result, onClose }: P
               <table className="w-full">
                 <thead className="bg-muted">
                   <tr>
-                    {headers.map((h, i) => mapping[i] ? (
+                    {headers.map((_h, i) => mapping[i] ? (
                       <th key={i} className="px-2 py-1 text-left font-medium">{mapping[i]}</th>
                     ) : null)}
                   </tr>
