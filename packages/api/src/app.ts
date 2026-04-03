@@ -10,6 +10,8 @@ import { categoriesRoutes } from './modules/categories/categories.routes.js';
 import { localisationsRoutes } from './modules/localisations/localisations.routes.js';
 import { itemsRoutes } from './modules/items/items.routes.js';
 import { reservationsRoutes } from './modules/reservations/reservations.routes.js';
+import { mouvementsRoutes } from './modules/mouvements/mouvements.routes.js';
+import { dashboardRoutes } from './modules/dashboard/dashboard.routes.js';
 
 const app = express();
 
@@ -39,6 +41,8 @@ app.use('/api/categories', categoriesRoutes);
 app.use('/api/localisations', localisationsRoutes);
 app.use('/api/items', itemsRoutes);
 app.use('/api/reservations', reservationsRoutes);
+app.use('/api/mouvements', mouvementsRoutes);
+app.use('/api/dashboard', dashboardRoutes);
 
 // Error handler (must be last)
 app.use(errorHandler);
