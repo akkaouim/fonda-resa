@@ -19,7 +19,7 @@ const envSchema = z.object({
   SMTP_PORT: z.coerce.number().default(465),
   SMTP_USER: z.string(),
   SMTP_PASS: z.string().default(''),
-  SMTP_FROM: z.string().default('Resa Esviere <noreply@fondacio.fr>'),
+  SMTP_FROM: z.string().default('Fonda Resa <noreply@fondacio.fr>'),
   FRONTEND_URL: z.string().url().default('http://localhost:5173'),
   UPLOAD_DIR: z.string().default('./uploads'),
 });

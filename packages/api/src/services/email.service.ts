@@ -87,10 +87,10 @@ export async function sendPasswordReset(to: string, resetUrl: string) {
 export async function sendAccountCreated(to: string, prenom: string, tempPassword: string) {
   await sendEmail({
     to,
-    subject: 'Bienvenue sur Resa Esviere',
+    subject: 'Bienvenue sur Fonda Resa',
     html: `
       <h2>Bienvenue, ${prenom} !</h2>
-      <p>Un compte a ete cree pour vous sur Resa Esviere.</p>
+      <p>Un compte a ete cree pour vous sur Fonda Resa.</p>
       <p><strong>Email :</strong> ${to}</p>
       <p><strong>Mot de passe temporaire :</strong> ${tempPassword}</p>
       <p>Connectez-vous et changez votre mot de passe des que possible.</p>

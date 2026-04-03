@@ -76,7 +76,10 @@ export default function AppLayout() {
         }`}
       >
         <div className="flex items-center justify-between border-b border-border px-4 py-4">
-          <h1 className="text-lg font-semibold">Resa Esviere</h1>
+          <div className="flex items-center gap-2">
+            <img src="/logo-fondacio.png" alt="Fondacio" className="h-7" />
+            <span className="text-lg font-semibold">Fonda Resa</span>
+          </div>
           <button onClick={() => setSidebarOpen(false)} className="lg:hidden">
             <X className="h-5 w-5" />
           </button>
@@ -128,7 +131,10 @@ export default function AppLayout() {
           <button onClick={() => setSidebarOpen(true)}>
             <Menu className="h-5 w-5" />
           </button>
-          <h1 className="ml-3 text-lg font-semibold">Resa Esviere</h1>
+          <div className="ml-3 flex items-center gap-2">
+            <img src="/logo-fondacio.png" alt="Fondacio" className="h-6" />
+            <span className="text-lg font-semibold">Fonda Resa</span>
+          </div>
         </header>
 
         <main className="flex-1 overflow-y-auto">

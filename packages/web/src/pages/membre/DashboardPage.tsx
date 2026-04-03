@@ -33,7 +33,7 @@ export default function DashboardPage() {
           <Home className="h-6 w-6" /> Bonjour, {user?.prenom}
         </h1>
         <p className="mt-1 text-muted-foreground">
-          Bienvenue sur Resa Esviere.
+          Bienvenue sur Fonda Resa.
         </p>
       </div>
 
