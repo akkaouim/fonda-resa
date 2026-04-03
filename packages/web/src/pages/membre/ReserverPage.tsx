@@ -262,11 +262,24 @@ export default function ReserverPage() {
             </div>
             <hr className="border-border" />
             <p className="text-sm font-medium">Materiel demande :</p>
-            <ul className="space-y-1 text-sm">
-              {cart.map((c) => (
-                <li key={c.itemId}>— {c.quantiteDemandee}x {c.nom}</li>
+            <div className="space-y-2 text-sm">
+              {Object.entries(
+                cart.reduce<Record<string, CartItem[]>>((groups, item) => {
+                  const cat = item.categorie || 'Autre';
+                  (groups[cat] ??= []).push(item);
+                  return groups;
+                }, {})
+              ).map(([cat, items]) => (
+                <div key={cat}>
+                  <p className="font-medium text-muted-foreground">{cat}</p>
+                  <ul className="ml-3 space-y-0.5">
+                    {items.map((c) => (
+                      <li key={c.itemId}>— {c.quantiteDemandee}x {c.nom}</li>
+                    ))}
+                  </ul>
+                </div>
               ))}
-            </ul>
+            </div>
           </div>
 
           {createReservation.error && (

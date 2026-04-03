@@ -6,9 +6,11 @@ import { Home, CalendarPlus, Package, MapPin, Clock } from 'lucide-react';
 const STATUT_STYLES: Record<string, { label: string; color: string }> = {
   en_attente: { label: 'En attente', color: 'bg-yellow-100 text-yellow-800' },
   validee: { label: 'Validee', color: 'bg-green-100 text-green-800' },
+  sortie: { label: 'Sortie', color: 'bg-orange-100 text-orange-800' },
+  retournee: { label: 'Retournee', color: 'bg-blue-100 text-blue-800' },
   refusee: { label: 'Refusee', color: 'bg-red-100 text-red-800' },
   annulee: { label: 'Annulee', color: 'bg-gray-100 text-gray-600' },
-  terminee: { label: 'Terminee', color: 'bg-blue-100 text-blue-800' },
+  terminee: { label: 'Terminee', color: 'bg-purple-100 text-purple-800' },
 };
 
 export default function DashboardPage() {
@@ -17,7 +19,7 @@ export default function DashboardPage() {
   const { data, isLoading } = useReservations();
 
   const activeReservations = data?.items?.filter(
-    (r: any) => r.statut === 'en_attente' || r.statut === 'validee'
+    (r: any) => ['en_attente', 'validee', 'sortie'].includes(r.statut)
   ) ?? [];
 
   const formatDate = (d: string) =>

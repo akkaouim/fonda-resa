@@ -29,6 +29,8 @@ export enum TypeItem {
 export enum StatutReservation {
   EN_ATTENTE = 'en_attente',
   VALIDEE = 'validee',
+  SORTIE = 'sortie',
+  RETOURNEE = 'retournee',
   REFUSEE = 'refusee',
   ANNULEE = 'annulee',
   TERMINEE = 'terminee',

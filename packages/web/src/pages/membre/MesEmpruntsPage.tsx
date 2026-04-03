@@ -1,18 +1,32 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useReservations, useCancelReservation, useDuplicateReservation } from '../../hooks/useReservations';
 import { useNavigate } from 'react-router-dom';
-import { Clock, Copy, X, ChevronDown, ChevronUp } from 'lucide-react';
+import { Clock, Copy, X, ChevronDown, ChevronUp, Search, ArrowUpDown } from 'lucide-react';
 
-const STATUT_STYLES: Record<string, { label: string; color: string }> = {
-  en_attente: { label: 'En attente', color: 'bg-yellow-100 text-yellow-800' },
-  validee: { label: 'Validee', color: 'bg-green-100 text-green-800' },
-  refusee: { label: 'Refusee', color: 'bg-red-100 text-red-800' },
-  annulee: { label: 'Annulee', color: 'bg-gray-100 text-gray-600' },
-  terminee: { label: 'Terminee', color: 'bg-blue-100 text-blue-800' },
+const STATUT_STYLES: Record<string, { label: string; color: string; order: number }> = {
+  en_attente: { label: 'En attente', color: 'bg-yellow-100 text-yellow-800', order: 0 },
+  validee: { label: 'Validee', color: 'bg-green-100 text-green-800', order: 1 },
+  sortie: { label: 'Sortie', color: 'bg-orange-100 text-orange-800', order: 2 },
+  retournee: { label: 'Retournee', color: 'bg-blue-100 text-blue-800', order: 3 },
+  refusee: { label: 'Refusee', color: 'bg-red-100 text-red-800', order: 4 },
+  annulee: { label: 'Annulee', color: 'bg-gray-100 text-gray-600', order: 5 },
+  terminee: { label: 'Terminee', color: 'bg-purple-100 text-purple-800', order: 6 },
 };
+
+type SortKey = 'date_desc' | 'date_asc' | 'motif' | 'statut' | 'items';
+
+const SORT_OPTIONS: { value: SortKey; label: string }[] = [
+  { value: 'date_desc', label: 'Date (recent d\'abord)' },
+  { value: 'date_asc', label: 'Date (ancien d\'abord)' },
+  { value: 'motif', label: 'Titre (A-Z)' },
+  { value: 'statut', label: 'Statut' },
+  { value: 'items', label: 'Nombre d\'items' },
+];
 
 export default function MesEmpruntsPage() {
   const [statutFilter, setStatutFilter] = useState<string | undefined>();
+  const [searchTerm, setSearchTerm] = useState('');
+  const [sortBy, setSortBy] = useState<SortKey>('date_desc');
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const { data, isLoading } = useReservations({ statut: statutFilter });
   const cancelResa = useCancelReservation();
@@ -22,7 +36,6 @@ export default function MesEmpruntsPage() {
   const handleDuplicate = (id: number) => {
     duplicateResa.mutate(id, {
       onSuccess: (data) => {
-        // Store prefill data and navigate to form
         sessionStorage.setItem('reservationPrefill', JSON.stringify(data));
         navigate('/reserver');
       },
@@ -31,29 +44,106 @@ export default function MesEmpruntsPage() {
 
   const formatDate = (d: string) => new Date(d).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' });
 
+  const filteredAndSorted = useMemo(() => {
+    if (!data?.items) return [];
+
+    let items = data.items as any[];
+
+    // Search filter
+    if (searchTerm) {
+      const q = searchTerm.toLowerCase();
+      items = items.filter((r: any) =>
+        r.motif.toLowerCase().includes(q) ||
+        r.lieuEvenement.toLowerCase().includes(q) ||
+        r.lignes.some((l: any) => l.item.nom.toLowerCase().includes(q))
+      );
+    }
+
+    // Sort
+    return [...items].sort((a: any, b: any) => {
+      switch (sortBy) {
+        case 'date_desc':
+          return new Date(b.dateDebut).getTime() - new Date(a.dateDebut).getTime();
+        case 'date_asc':
+          return new Date(a.dateDebut).getTime() - new Date(b.dateDebut).getTime();
+        case 'motif':
+          return a.motif.localeCompare(b.motif, 'fr');
+        case 'statut':
+          return (STATUT_STYLES[a.statut]?.order ?? 9) - (STATUT_STYLES[b.statut]?.order ?? 9);
+        case 'items':
+          return b.lignes.length - a.lignes.length;
+        default:
+          return 0;
+      }
+    });
+  }, [data?.items, searchTerm, sortBy]);
+
   return (
     <div className="p-4 pb-20 lg:p-6 lg:pb-6">
       <div className="mb-4 flex items-center justify-between">
         <h1 className="flex items-center gap-2 text-2xl font-semibold">
           <Clock className="h-6 w-6" /> Mes emprunts
         </h1>
-        <select value={statutFilter || ''} onChange={(e) => setStatutFilter(e.target.value || undefined)}
-          className="rounded-md border border-input px-3 py-1.5 text-sm">
-          <option value="">Tous les statuts</option>
-          <option value="en_attente">En attente</option>
-          <option value="validee">Validees</option>
-          <option value="refusee">Refusees</option>
-          <option value="annulee">Annulees</option>
-        </select>
       </div>
+
+      {/* Search + Filters + Sort */}
+      <div className="mb-4 space-y-3">
+        <div className="relative">
+          <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+          <input
+            type="text"
+            placeholder="Rechercher par titre, lieu ou materiel..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full rounded-md border border-input pl-10 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+          />
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <select
+            value={statutFilter || ''}
+            onChange={(e) => setStatutFilter(e.target.value || undefined)}
+            className="rounded-md border border-input px-3 py-1.5 text-sm"
+          >
+            <option value="">Tous les statuts</option>
+            <option value="en_attente">En attente</option>
+            <option value="validee">Validees</option>
+            <option value="sortie">Sorties</option>
+            <option value="retournee">Retournees</option>
+            <option value="refusee">Refusees</option>
+            <option value="annulee">Annulees</option>
+          </select>
+          <div className="flex items-center gap-1.5">
+            <ArrowUpDown className="h-4 w-4 text-muted-foreground" />
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value as SortKey)}
+              className="rounded-md border border-input px-3 py-1.5 text-sm"
+            >
+              {SORT_OPTIONS.map((o) => (
+                <option key={o.value} value={o.value}>{o.label}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+      </div>
+
+      {/* Results count */}
+      {data && (
+        <p className="mb-3 text-sm text-muted-foreground">
+          {filteredAndSorted.length} reservation{filteredAndSorted.length > 1 ? 's' : ''}
+          {searchTerm && ` pour "${searchTerm}"`}
+        </p>
+      )}
 
       {isLoading ? (
         <p className="text-muted-foreground">Chargement...</p>
-      ) : data?.items.length === 0 ? (
-        <p className="text-muted-foreground">Aucune reservation pour le moment.</p>
+      ) : filteredAndSorted.length === 0 ? (
+        <p className="text-muted-foreground">
+          {searchTerm ? 'Aucun resultat pour cette recherche.' : 'Aucune reservation pour le moment.'}
+        </p>
       ) : (
         <div className="space-y-3">
-          {data?.items.map((r: any) => {
+          {filteredAndSorted.map((r: any) => {
             const s = STATUT_STYLES[r.statut] || STATUT_STYLES.en_attente;
             const expanded = expandedId === r.id;
             return (

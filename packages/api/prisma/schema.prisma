@@ -35,6 +35,8 @@ enum TypeItem {
 enum StatutReservation {
   en_attente
   validee
+  sortie
+  retournee
   refusee
   annulee
   terminee

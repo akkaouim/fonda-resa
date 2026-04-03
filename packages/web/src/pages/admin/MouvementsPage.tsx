@@ -48,7 +48,8 @@ export default function MouvementsPage() {
   // Data hooks
   const { data: mouvementsData, isLoading: mouvLoading } = useMouvements({ typeMouvement: filterType || undefined, limit: 50 });
   const { data: itemsData } = useItems({ limit: 500 });
-  const { data: reservationsData } = useReservations({ statut: 'validee' });
+  const { data: resaValidees } = useReservations({ statut: 'validee' });
+  const { data: resaSorties } = useReservations({ statut: 'sortie' });
 
   const createSortie = useCreateSortie();
   const createRetour = useCreateRetour();
@@ -56,13 +57,18 @@ export default function MouvementsPage() {
 
   const allItems = itemsData?.items || [];
   const consommableItems = allItems.filter((i: any) => i.typeItem === 'consommable');
-  const validatedReservations = reservationsData?.items || [];
+
+  // For sortie tab: reservations with statut "validee" (not yet checked out)
+  const reservationsForSortie = resaValidees?.items || [];
+  // For retour tab: reservations with statut "sortie" (checked out, awaiting return)
+  const reservationsForRetour = resaSorties?.items || [];
 
   // Auto-fill lines when a reservation is selected
   const handleReservationChange = (id: number | undefined) => {
     setReservationId(id);
     if (id) {
-      const resa = validatedReservations.find((r: any) => r.id === id);
+      const allResas = [...reservationsForSortie, ...reservationsForRetour];
+      const resa = allResas.find((r: any) => r.id === id);
       if (resa && resa.lignes?.length > 0) {
         setLignes(resa.lignes.map((l: any) => ({
           itemId: l.itemId,
@@ -204,18 +210,29 @@ export default function MouvementsPage() {
           {/* Reservation selector */}
           <div>
             <label className="mb-1 block text-sm font-medium">Reservation (optionnel)</label>
-            <select
-              value={reservationId || ''}
-              onChange={(e) => handleReservationChange(e.target.value ? Number(e.target.value) : undefined)}
-              className="w-full rounded-md border border-input px-3 py-2 text-sm"
-            >
-              <option value="">-- Sans reservation --</option>
-              {validatedReservations.map((r: any) => (
-                <option key={r.id} value={r.id}>
-                  #{r.id} — {r.motif} ({r.utilisateur?.prenom} {r.utilisateur?.nom})
-                </option>
-              ))}
-            </select>
+            {(() => {
+              const availableResas = tab === 'sortie' ? reservationsForSortie : reservationsForRetour;
+              return (
+                <select
+                  value={reservationId || ''}
+                  onChange={(e) => handleReservationChange(e.target.value ? Number(e.target.value) : undefined)}
+                  className="w-full rounded-md border border-input px-3 py-2 text-sm"
+                >
+                  <option value="">-- Sans reservation --</option>
+                  {availableResas.map((r: any) => (
+                    <option key={r.id} value={r.id}>
+                      #{r.id} — {r.motif} ({r.utilisateur?.prenom} {r.utilisateur?.nom})
+                    </option>
+                  ))}
+                </select>
+              );
+            })()}
+            {tab === 'sortie' && reservationsForSortie.length === 0 && (
+              <p className="mt-1 text-xs text-muted-foreground">Aucune reservation validee en attente de sortie.</p>
+            )}
+            {tab === 'retour' && reservationsForRetour.length === 0 && (
+              <p className="mt-1 text-xs text-muted-foreground">Aucune reservation en attente de retour.</p>
+            )}
           </div>
 
           {/* Lines */}

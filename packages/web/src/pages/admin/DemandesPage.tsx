@@ -5,9 +5,11 @@ import { CheckSquare, Check, X, ChevronDown, ChevronUp, MessageSquare } from 'lu
 const STATUT_STYLES: Record<string, { label: string; color: string }> = {
   en_attente: { label: 'En attente', color: 'bg-yellow-100 text-yellow-800' },
   validee: { label: 'Validee', color: 'bg-green-100 text-green-800' },
+  sortie: { label: 'Sortie', color: 'bg-orange-100 text-orange-800' },
+  retournee: { label: 'Retournee', color: 'bg-blue-100 text-blue-800' },
   refusee: { label: 'Refusee', color: 'bg-red-100 text-red-800' },
   annulee: { label: 'Annulee', color: 'bg-gray-100 text-gray-600' },
-  terminee: { label: 'Terminee', color: 'bg-blue-100 text-blue-800' },
+  terminee: { label: 'Terminee', color: 'bg-purple-100 text-purple-800' },
 };
 
 export default function DemandesPage() {
@@ -44,6 +46,8 @@ export default function DemandesPage() {
           className="rounded-md border border-input px-3 py-1.5 text-sm">
           <option value="en_attente">En attente</option>
           <option value="validee">Validees</option>
+          <option value="sortie">Sorties</option>
+          <option value="retournee">Retournees</option>
           <option value="refusee">Refusees</option>
           <option value="">Toutes</option>
         </select>

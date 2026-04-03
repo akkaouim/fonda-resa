@@ -53,6 +53,14 @@ export async function createSortie(data: CreateSortieData, adminId: number) {
     mouvements.push(mouvement);
   }
 
+  // Update reservation status to 'sortie'
+  if (data.reservationId) {
+    await prisma.reservation.update({
+      where: { id: data.reservationId },
+      data: { statut: 'sortie' },
+    });
+  }
+
   await logAudit({
     utilisateurId: adminId,
     action: 'mouvement.sortie',
@@ -77,8 +85,8 @@ export async function createRetour(data: CreateRetourData, adminId: number) {
   if (data.reservationId) {
     const reservation = await prisma.reservation.findUnique({ where: { id: data.reservationId } });
     if (!reservation) throw new AppError(404, 'NOT_FOUND', 'Reservation introuvable');
-    if (reservation.statut !== 'validee') {
-      throw new AppError(400, 'INVALID_STATUS', 'La reservation doit etre validee pour effectuer un retour');
+    if (!['validee', 'sortie'].includes(reservation.statut)) {
+      throw new AppError(400, 'INVALID_STATUS', 'La reservation doit etre en statut "validee" ou "sortie" pour effectuer un retour');
     }
   }
 
@@ -102,6 +110,14 @@ export async function createRetour(data: CreateRetourData, adminId: number) {
       include: MOUVEMENT_INCLUDE,
     });
     mouvements.push(mouvement);
+  }
+
+  // Update reservation status to 'retournee'
+  if (data.reservationId) {
+    await prisma.reservation.update({
+      where: { id: data.reservationId },
+      data: { statut: 'retournee' },
+    });
   }
 
   await logAudit({

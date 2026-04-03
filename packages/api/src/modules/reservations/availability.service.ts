@@ -25,7 +25,7 @@ export async function getAvailableQuantity(
       itemId,
       reservation: {
         id: excludeReservationId ? { not: excludeReservationId } : undefined,
-        statut: { in: ['validee', 'en_attente'] },
+        statut: { in: ['validee', 'en_attente', 'sortie'] },
         dateDebut: { lt: dateFin },
         dateFin: { gt: dateDebut },
       },
