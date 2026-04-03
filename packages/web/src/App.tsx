@@ -9,7 +9,10 @@ import DashboardPage from './pages/membre/DashboardPage';
 import ProfilePage from './pages/membre/ProfilePage';
 import MaterielPage from './pages/membre/MaterielPage';
 import UsersPage from './pages/admin/UsersPage';
+import ReserverPage from './pages/membre/ReserverPage';
+import MesEmpruntsPage from './pages/membre/MesEmpruntsPage';
 import InventairePage from './pages/admin/InventairePage';
+import DemandesPage from './pages/admin/DemandesPage';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -50,14 +53,14 @@ export default function App() {
             {/* Member routes */}
             <Route path="/" element={<DashboardPage />} />
             <Route path="/materiel" element={<MaterielPage />} />
-            <Route path="/reserver" element={<PlaceholderPage title="Nouvelle reservation" />} />
-            <Route path="/mes-emprunts" element={<PlaceholderPage title="Mes emprunts" />} />
+            <Route path="/reserver" element={<ReserverPage />} />
+            <Route path="/mes-emprunts" element={<MesEmpruntsPage />} />
             <Route path="/profil" element={<ProfilePage />} />
 
             {/* Admin routes */}
             <Route path="/admin" element={<AdminGuard><PlaceholderPage title="Tableau de bord admin" /></AdminGuard>} />
             <Route path="/admin/inventaire" element={<AdminGuard><InventairePage /></AdminGuard>} />
-            <Route path="/admin/demandes" element={<AdminGuard><PlaceholderPage title="Demandes" /></AdminGuard>} />
+            <Route path="/admin/demandes" element={<AdminGuard><DemandesPage /></AdminGuard>} />
             <Route path="/admin/mouvements" element={<AdminGuard><PlaceholderPage title="Entrees / Sorties" /></AdminGuard>} />
             <Route path="/admin/utilisateurs" element={<AdminGuard><UsersPage /></AdminGuard>} />
           </Route>

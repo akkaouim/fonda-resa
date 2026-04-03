@@ -9,6 +9,7 @@ import { usersRoutes } from './modules/users/users.routes.js';
 import { categoriesRoutes } from './modules/categories/categories.routes.js';
 import { localisationsRoutes } from './modules/localisations/localisations.routes.js';
 import { itemsRoutes } from './modules/items/items.routes.js';
+import { reservationsRoutes } from './modules/reservations/reservations.routes.js';
 
 const app = express();
 
@@ -37,6 +38,7 @@ app.use('/api/users', usersRoutes);
 app.use('/api/categories', categoriesRoutes);
 app.use('/api/localisations', localisationsRoutes);
 app.use('/api/items', itemsRoutes);
+app.use('/api/reservations', reservationsRoutes);
 
 // Error handler (must be last)
 app.use(errorHandler);
