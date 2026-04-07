@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useItems, useCategories, useLocalisations } from '../../hooks/useItems';
-import { Search, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, MapPin, Tag } from 'lucide-react';
+import { Search, ChevronLeft, ChevronRight, MapPin, Tag } from 'lucide-react';
 import ItemDetail from '../../components/materiel/ItemDetail';
 
 const ETAT_LABELS: Record<string, { label: string; color: string }> = {
@@ -100,7 +100,7 @@ export default function MaterielPage() {
                       <tr key={item.id} onClick={() => toggleExpand(item.id)}
                         className="border-t border-border cursor-pointer hover:bg-muted/50">
                         <td className="px-2 py-3 text-muted-foreground">
-                          {expanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                          <ChevronRight className={`h-4 w-4 transition-transform ${expanded ? 'rotate-90' : ''}`} />
                         </td>
                         <td className="px-4 py-3">
                           <div className="font-medium">{item.nom}</div>
@@ -169,7 +169,7 @@ export default function MaterielPage() {
                     </div>
                     <div className="flex items-center gap-2">
                       <span className="rounded-md bg-muted px-2 py-1 text-sm font-semibold">{item.quantiteStock}</span>
-                      {expanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                      <ChevronRight className={`h-4 w-4 transition-transform ${expanded ? 'rotate-90' : ''}`} />
                     </div>
                   </button>
                   {expanded && (

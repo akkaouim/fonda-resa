@@ -5,7 +5,7 @@ import { logAudit } from '../../services/audit.service.js';
 const MOUVEMENT_INCLUDE = {
   item: { include: { categorie: true, localisation: true } },
   utilisateur: { select: { id: true, nom: true, prenom: true, email: true } },
-  reservation: { select: { id: true, motif: true, statut: true } },
+  reservation: { select: { id: true, motif: true, statut: true, dateFin: true } },
 };
 
 // ─── Sortie ────────────────────────────────────────────
@@ -14,6 +14,8 @@ interface LigneMouvement {
   quantite: number;
   etatConstate?: string;
   commentaire?: string;
+  quantiteAReparer?: number;
+  quantiteHorsService?: number;
 }
 
 interface CreateSortieData {
@@ -97,6 +99,10 @@ export async function createRetour(data: CreateRetourData, adminId: number) {
       throw new AppError(400, 'ITEM_NOT_FOUND', `Item #${ligne.itemId} introuvable`);
     }
 
+    if (!ligne.etatConstate) {
+      throw new AppError(400, 'ETAT_REQUIRED', `L'etat est obligatoire pour "${item.nom}"`);
+    }
+
     const mouvement = await prisma.mouvement.create({
       data: {
         itemId: ligne.itemId,
@@ -110,6 +116,19 @@ export async function createRetour(data: CreateRetourData, adminId: number) {
       include: MOUVEMENT_INCLUDE,
     });
     mouvements.push(mouvement);
+
+    // Update item degraded quantities if items came back damaged
+    const qteAReparer = ligne.quantiteAReparer || 0;
+    const qteHorsService = ligne.quantiteHorsService || 0;
+    if (qteAReparer > 0 || qteHorsService > 0) {
+      await prisma.item.update({
+        where: { id: ligne.itemId },
+        data: {
+          quantiteAReparer: { increment: qteAReparer },
+          quantiteHorsService: { increment: qteHorsService },
+        },
+      });
+    }
   }
 
   // Update reservation status to 'retournee'

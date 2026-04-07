@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { Role } from '@resa-esviere/shared';
+import { Role } from '../../shared/index.js';
 import { authenticate, authorize } from '../../middleware/auth.js';
 import { asyncHandler } from '../../middleware/async-handler.js';
 import { prisma } from '../../config/database.js';

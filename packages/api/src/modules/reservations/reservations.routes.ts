@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { Role, createReservationSchema } from '@resa-esviere/shared';
+import { Role, createReservationSchema } from '../../shared/index.js';
 import { authenticate, authorize } from '../../middleware/auth.js';
 import { asyncHandler } from '../../middleware/async-handler.js';
 import * as reservationsService from './reservations.service.js';

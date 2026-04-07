@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useUsers, useCreateUser, useDeactivateUser } from '../../hooks/useUsers';
-import { Role } from '@resa-esviere/shared';
+import { Role } from '../../shared/index';
 import { UserPlus, X, Shield, User as UserIcon } from 'lucide-react';
 
 export default function UsersPage() {

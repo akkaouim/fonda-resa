@@ -4,6 +4,8 @@ import { prisma } from '../../config/database.js';
  * Calculate available quantity for an item over a date range.
  *
  * available = stock
+ *   - a_reparer (items needing repair)
+ *   - hors_service (items out of service)
  *   - reserved (validee or en_attente, overlapping dates)
  *   - checked out (sortie without matching retour)
  *
@@ -54,7 +56,8 @@ export async function getAvailableQuantity(
 
   const netCheckedOut = Math.max(0, checkedOut - returned);
 
-  return Math.max(0, item.quantiteStock - reserved - netCheckedOut);
+  const unavailable = (item.quantiteAReparer || 0) + (item.quantiteHorsService || 0);
+  return Math.max(0, item.quantiteStock - unavailable - reserved - netCheckedOut);
 }
 
 /**

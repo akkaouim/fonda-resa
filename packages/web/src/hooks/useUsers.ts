@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../lib/api';
-import type { UtilisateurPublic, CreateUserRequest, UpdateUserRequest } from '@resa-esviere/shared';
+import type { UtilisateurPublic, CreateUserRequest, UpdateUserRequest } from '../shared/index';
 
 export function useUsers() {
   return useQuery({

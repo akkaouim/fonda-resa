@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { createUserSchema, updateUserSchema } from '@resa-esviere/shared';
+import { createUserSchema, updateUserSchema } from '../../shared/index.js';
 import * as usersService from './users.service.js';
 
 export async function list(_req: Request, res: Response) {

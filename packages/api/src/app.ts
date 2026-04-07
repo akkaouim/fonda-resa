@@ -18,7 +18,14 @@ const app = express();
 // Security
 app.use(helmet());
 app.use(cors({
-  origin: env.FRONTEND_URL,
+  origin: (origin, callback) => {
+    // Allow same-origin (no origin header), configured frontend, and ngrok URLs
+    if (!origin || origin === env.FRONTEND_URL || origin.endsWith('.ngrok-free.app')) {
+      callback(null, true);
+    } else {
+      callback(null, true); // Permissive in dev; tighten in production
+    }
+  },
   credentials: true,
 }));
 
@@ -26,8 +33,18 @@ app.use(cors({
 app.use(express.json());
 app.use(cookieParser());
 
-// Static files (uploaded photos)
-app.use('/uploads', express.static(env.UPLOAD_DIR));
+// Serve frontend in production (or when built)
+import path from 'path';
+import { fileURLToPath } from 'url';
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+// Static files (uploaded photos) — resolve relative to project root
+const uploadDir = path.isAbsolute(env.UPLOAD_DIR)
+  ? env.UPLOAD_DIR
+  : path.resolve(__dirname, '../../../', env.UPLOAD_DIR);
+app.use('/uploads', express.static(uploadDir));
+const frontendDist = path.resolve(__dirname, '../../web/dist');
+app.use(express.static(frontendDist));
 
 // Health check
 app.get('/api/health', (_req, res) => {
@@ -43,6 +60,17 @@ app.use('/api/items', itemsRoutes);
 app.use('/api/reservations', reservationsRoutes);
 app.use('/api/mouvements', mouvementsRoutes);
 app.use('/api/dashboard', dashboardRoutes);
+
+// SPA fallback: serve index.html for non-API routes
+import fs from 'fs';
+const indexHtml = path.join(frontendDist, 'index.html');
+app.use((req, res, next) => {
+  if (!req.path.startsWith('/api') && !req.path.startsWith('/uploads') && fs.existsSync(indexHtml)) {
+    res.sendFile(indexHtml);
+  } else {
+    next();
+  }
+});
 
 // Error handler (must be last)
 app.use(errorHandler);

@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useItems, useLocalisations } from '../../hooks/useItems';
 import { useCreateReservation } from '../../hooks/useReservations';
-import { CalendarPlus, ArrowRight, ArrowLeft, Search, Plus, Minus, AlertTriangle, Check, X } from 'lucide-react';
+import { CalendarPlus, ArrowRight, ArrowLeft, Search, Plus, Minus, AlertTriangle, Check, X, Copy, Info, ChevronRight } from 'lucide-react';
+import ItemDetail from '../../components/materiel/ItemDetail';
 
 interface CartItem {
   itemId: number;
@@ -33,10 +34,65 @@ export default function ReserverPage() {
   // Step 2: Item selection
   const [cart, setCart] = useState<CartItem[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
+  const [expandedItemId, setExpandedItemId] = useState<number | null>(null);
+
+  // Prefill from duplicated reservation
+  const [prefillInfo, setPrefillInfo] = useState<{ motif: string; itemCount: number; totalUnites: number; removedItems: string[] } | null>(null);
 
   const { data: localisations } = useLocalisations();
   const { data: itemsData } = useItems({ search: searchTerm || undefined, limit: 100 });
   const createReservation = useCreateReservation();
+
+  // Load prefill data from sessionStorage (set by "Reutiliser" button)
+  useEffect(() => {
+    const raw = sessionStorage.getItem('reservationPrefill');
+    if (!raw) return;
+    sessionStorage.removeItem('reservationPrefill');
+    try {
+      const prefill = JSON.parse(raw);
+      setMotif(prefill.motif || '');
+      setLieuEvenement(prefill.lieuEvenement || '');
+      setEstHorsSite(prefill.estHorsSite || false);
+      const lignes = prefill.lignes || [];
+      setPrefillInfo({
+        motif: prefill.motif || '',
+        itemCount: lignes.length,
+        totalUnites: lignes.reduce((sum: number, l: any) => sum + (l.quantiteDemandee || 0), 0),
+        removedItems: prefill.removedItems || [],
+      });
+      // Cart will be populated once itemsData is available
+      if (prefill.lignes?.length > 0) {
+        // Store lignes temporarily, will resolve item names when data loads
+        sessionStorage.setItem('_prefillLignes', JSON.stringify(prefill.lignes));
+      }
+    } catch { /* ignore parse errors */ }
+  }, []);
+
+  // Resolve prefill lignes to cart items once item data is loaded
+  useEffect(() => {
+    const raw = sessionStorage.getItem('_prefillLignes');
+    if (!raw || !itemsData?.items?.length) return;
+    sessionStorage.removeItem('_prefillLignes');
+    try {
+      const lignes = JSON.parse(raw) as { itemId: number; quantiteDemandee: number }[];
+      const cartItems: CartItem[] = [];
+      for (const l of lignes) {
+        const item = itemsData.items.find((i: any) => i.id === l.itemId);
+        if (item) {
+          cartItems.push({
+            itemId: item.id,
+            nom: item.nom,
+            quantiteDemandee: l.quantiteDemandee,
+            quantiteStock: item.quantiteStock,
+            perimetre: item.perimetreUtilisation,
+            localisation: item.localisation?.nom,
+            categorie: item.categorie?.nom,
+          });
+        }
+      }
+      if (cartItems.length > 0) setCart(cartItems);
+    } catch { /* ignore */ }
+  }, [itemsData]);
 
   const addToCart = (item: any) => {
     if (cart.find((c) => c.itemId === item.id)) return;
@@ -104,6 +160,30 @@ export default function ReserverPage() {
       {/* Step 1: Event */}
       {step === 1 && (
         <div className="max-w-lg space-y-4">
+          {/* Prefill notification */}
+          {prefillInfo && (
+            <div className="flex items-start gap-3 rounded-lg border border-blue-200 bg-blue-50 p-4">
+              <Copy className="mt-0.5 h-5 w-5 shrink-0 text-blue-600" />
+              <div className="text-sm">
+                <p className="font-medium text-blue-900">
+                  Reservation basee sur "{prefillInfo.motif}"
+                </p>
+                <p className="mt-0.5 text-blue-700">
+                  {prefillInfo.itemCount} item{prefillInfo.itemCount > 1 ? 's' : ''} ({prefillInfo.totalUnites} unite{prefillInfo.totalUnites > 1 ? 's' : ''}) pre-charge{prefillInfo.itemCount > 1 ? 's' : ''} dans l'etape 2. Ajustez les dates ci-dessous puis passez a l'etape suivante.
+                </p>
+                {prefillInfo.removedItems.length > 0 && (
+                  <p className="mt-1 flex items-center gap-1 text-orange-700">
+                    <Info className="h-4 w-4" />
+                    Item(s) supprime(s) depuis la reservation d'origine : {prefillInfo.removedItems.join(', ')}
+                  </p>
+                )}
+              </div>
+              <button onClick={() => setPrefillInfo(null)} className="shrink-0 text-blue-400 hover:text-blue-600">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+          )}
+
           <div>
             <label className="mb-1 block text-sm font-medium">Motif / Evenement *</label>
             <input required value={motif} onChange={(e) => setMotif(e.target.value)}
@@ -204,33 +284,46 @@ export default function ReserverPage() {
               className="w-full rounded-md border border-input pl-10 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring" />
           </div>
 
-          <div className="max-h-64 overflow-y-auto rounded-lg border border-border">
+          <div className="max-h-96 overflow-y-auto rounded-lg border border-border">
             {itemsData?.items.map((item: any) => {
               const inCart = cart.find((c) => c.itemId === item.id);
+              const expanded = expandedItemId === item.id;
               return (
-                <div key={item.id} className="flex items-center justify-between border-b border-border px-3 py-2 text-sm last:border-0">
-                  <div>
-                    <span className={inCart ? 'font-medium text-primary' : ''}>{item.nom}</span>
-                    <span className="ml-2 text-xs text-muted-foreground">{item.categorie?.nom}</span>
-                    {item.perimetreUtilisation !== 'libre' && (
-                      <span className={`ml-2 inline-block rounded px-1 py-0.5 text-xs ${
-                        item.perimetreUtilisation === 'sur_le_site' ? 'bg-blue-100 text-blue-800' : 'bg-orange-100 text-orange-800'
-                      }`}>
-                        {item.perimetreUtilisation === 'sur_le_site' ? 'Sur le site' : 'Sur place'}
-                      </span>
-                    )}
+                <div key={item.id} className="border-b border-border last:border-0">
+                  <div className="flex items-center justify-between px-3 py-2 text-sm">
+                    <button
+                      type="button"
+                      onClick={() => setExpandedItemId(expanded ? null : item.id)}
+                      className="flex flex-1 items-center gap-2 text-left"
+                    >
+                      <ChevronRight className={`h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform ${expanded ? 'rotate-90' : ''}`} />
+                      <span className={inCart ? 'font-medium text-primary' : ''}>{item.nom}</span>
+                      <span className="text-xs text-muted-foreground">{item.categorie?.nom}</span>
+                      {item.perimetreUtilisation !== 'libre' && (
+                        <span className={`inline-block rounded px-1 py-0.5 text-xs ${
+                          item.perimetreUtilisation === 'sur_le_site' ? 'bg-blue-100 text-blue-800' : 'bg-orange-100 text-orange-800'
+                        }`}>
+                          {item.perimetreUtilisation === 'sur_le_site' ? 'Sur le site' : 'Sur place'}
+                        </span>
+                      )}
+                    </button>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className="text-xs text-muted-foreground">{item.quantiteStock} dispo</span>
+                      {inCart ? (
+                        <span className="text-xs text-primary">Ajoute</span>
+                      ) : (
+                        <button type="button" onClick={() => addToCart(item)}
+                          className="rounded border border-input p-1 text-primary hover:bg-primary/10">
+                          <Plus className="h-3 w-3" />
+                        </button>
+                      )}
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-muted-foreground">{item.quantiteStock} dispo</span>
-                    {inCart ? (
-                      <span className="text-xs text-primary">Ajoute</span>
-                    ) : (
-                      <button onClick={() => addToCart(item)}
-                        className="rounded border border-input p-1 text-primary hover:bg-primary/10">
-                        <Plus className="h-3 w-3" />
-                      </button>
-                    )}
-                  </div>
+                  {expanded && (
+                    <div className="border-t border-border bg-muted/30 px-4 py-3">
+                      <ItemDetail item={item} />
+                    </div>
+                  )}
                 </div>
               );
             })}

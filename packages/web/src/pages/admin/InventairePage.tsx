@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useItems, useCategories, useLocalisations, useCreateItem, useUpdateItem, useDeleteItem, useImportItems } from '../../hooks/useItems';
-import { Search, Plus, X, Upload, Pencil, Trash2, ChevronDown, ChevronUp } from 'lucide-react';
+import { api } from '../../lib/api';
+import { Search, Plus, X, Upload, Pencil, Trash2, ChevronRight } from 'lucide-react';
 import ItemForm from '../../components/admin/ItemForm';
 import ImportWizard from '../../components/admin/ImportWizard';
 import ItemDetail from '../../components/materiel/ItemDetail';
@@ -23,13 +24,26 @@ export default function InventairePage() {
   const importItems = useImportItems();
 
   const handleSave = (formData: Record<string, any>) => {
+    const { _pendingPhoto, ...itemData } = formData;
     if (editingItem) {
-      updateItem.mutate({ id: editingItem.id, ...formData }, {
+      updateItem.mutate({ id: editingItem.id, ...itemData }, {
         onSuccess: () => { setEditingItem(null); setShowForm(false); },
       });
     } else {
-      createItem.mutate(formData, {
-        onSuccess: () => setShowForm(false),
+      createItem.mutate(itemData, {
+        onSuccess: async (newItem: any) => {
+          // Upload photo for newly created item
+          if (_pendingPhoto && newItem?.id) {
+            const fd = new FormData();
+            fd.append('photo', _pendingPhoto);
+            try {
+              await api.post(`/items/${newItem.id}/photo`, fd, {
+                headers: { 'Content-Type': 'multipart/form-data' },
+              });
+            } catch { /* photo upload failed, item still created */ }
+          }
+          setShowForm(false);
+        },
       });
     }
   };
@@ -119,7 +133,7 @@ export default function InventairePage() {
                     <tr key={item.id} onClick={() => toggleExpand(item.id)}
                       className="border-t border-border cursor-pointer hover:bg-muted/50">
                       <td className="px-2 py-2 text-muted-foreground">
-                        {expanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                        <ChevronRight className={`h-4 w-4 transition-transform ${expanded ? 'rotate-90' : ''}`} />
                       </td>
                       <td className="px-3 py-2">
                         <div className="font-medium">{item.nom}</div>

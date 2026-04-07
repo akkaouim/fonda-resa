@@ -1,9 +1,8 @@
 import { Router } from 'express';
-import { Role } from '@resa-esviere/shared';
+import { Role, createLocalisationSchema } from '../../shared/index.js';
 import { authenticate, authorize } from '../../middleware/auth.js';
 import { asyncHandler } from '../../middleware/async-handler.js';
 import { prisma } from '../../config/database.js';
-import { createLocalisationSchema } from '@resa-esviere/shared';
 
 const router = Router();
 

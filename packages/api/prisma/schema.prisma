@@ -119,6 +119,8 @@ model Item {
   sousCategorieId       Int?                 @map("sous_categorie_id")
   sousCategorie         SousCategorie?       @relation(fields: [sousCategorieId], references: [id])
   quantiteStock         Int                  @default(1) @map("quantite_stock")
+  quantiteAReparer      Int                  @default(0) @map("quantite_a_reparer")
+  quantiteHorsService   Int                  @default(0) @map("quantite_hors_service")
   etat                  Etat                 @default(bon)
   commentaireEtat       String?              @map("commentaire_etat") @db.VarChar(500)
   localisationId        Int?                 @map("localisation_id")

@@ -1,6 +1,6 @@
 import { create } from 'zustand';
-import type { UtilisateurPublic } from '@resa-esviere/shared';
-import { Role } from '@resa-esviere/shared';
+import type { UtilisateurPublic } from '../shared/index';
+import { Role } from '../shared/index';
 
 interface AuthState {
   user: UtilisateurPublic | null;

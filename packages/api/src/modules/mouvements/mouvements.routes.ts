@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { Role, createSortieSchema, createRetourSchema, createConsommationSchema } from '@resa-esviere/shared';
+import { Role, createSortieSchema, createRetourSchema, createConsommationSchema } from '../../shared/index.js';
 import { authenticate, authorize } from '../../middleware/auth.js';
 import { asyncHandler } from '../../middleware/async-handler.js';
 import * as mouvementsService from './mouvements.service.js';

@@ -52,6 +52,7 @@ export function useCreateRetour() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['mouvements'] });
       qc.invalidateQueries({ queryKey: ['items'] });
+      qc.invalidateQueries({ queryKey: ['reservations'] });
     },
   });
 }

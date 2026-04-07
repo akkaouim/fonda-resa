@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '../lib/api';
 import { useAuthStore } from '../stores/auth';
-import type { UtilisateurPublic } from '@resa-esviere/shared';
+import type { UtilisateurPublic } from '../shared/index';
 
 export function useCurrentUser() {
   const setUser = useAuthStore((s) => s.setUser);

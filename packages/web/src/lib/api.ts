@@ -1,5 +1,5 @@
 import axios from 'axios';
-import type { ApiResponse } from '@resa-esviere/shared';
+import type { ApiResponse } from '../shared/index';
 
 const api = axios.create({
   baseURL: '/api',

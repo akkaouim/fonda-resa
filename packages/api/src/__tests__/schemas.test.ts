@@ -6,7 +6,7 @@ import {
   createReservationSchema,
   createSortieSchema,
   createConsommationSchema,
-} from '@resa-esviere/shared';
+} from '../shared/index.js';
 
 describe('loginSchema', () => {
   it('validates correct login data', () => {

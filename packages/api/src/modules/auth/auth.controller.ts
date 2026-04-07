@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { loginSchema, forgotPasswordSchema, resetPasswordSchema, changePasswordSchema } from '@resa-esviere/shared';
+import { loginSchema, forgotPasswordSchema, resetPasswordSchema, changePasswordSchema } from '../../shared/index.js';
 import * as authService from './auth.service.js';
 import { env } from '../../config/env.js';
 

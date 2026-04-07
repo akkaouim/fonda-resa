@@ -75,7 +75,19 @@ export default function ItemDetail({ item }: Props) {
         <div className="grid gap-2 sm:grid-cols-2">
           <Field label="Categorie" icon={Tag}
             value={item.categorie ? `${item.categorie.nom}${item.sousCategorie ? ` / ${item.sousCategorie.nom}` : ''}` : null} />
-          <Field label="Stock" value={<span className="font-medium">{item.quantiteStock} unite(s)</span>} />
+          <Field label="Stock" value={
+            <span className="font-medium">
+              {item.quantiteStock} unite(s)
+              {((item.quantiteAReparer || 0) > 0 || (item.quantiteHorsService || 0) > 0) && (
+                <span className="ml-1 font-normal text-muted-foreground">
+                  ({item.quantiteStock - (item.quantiteAReparer || 0) - (item.quantiteHorsService || 0)} disponible{item.quantiteStock - (item.quantiteAReparer || 0) - (item.quantiteHorsService || 0) > 1 ? 's' : ''}
+                  {(item.quantiteAReparer || 0) > 0 && <span className="text-orange-600">, {item.quantiteAReparer} a reparer</span>}
+                  {(item.quantiteHorsService || 0) > 0 && <span className="text-red-600">, {item.quantiteHorsService} hors service</span>}
+                  )
+                </span>
+              )}
+            </span>
+          } />
           <Field label="Localisation" icon={MapPin} value={item.localisation?.nom} />
           <Field label="Perimetre" value={perimetre?.desc} />
           <Field label="Marquage" icon={Hash} value={item.marquage} />

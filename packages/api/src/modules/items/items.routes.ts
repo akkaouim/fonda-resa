@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { Role, createItemSchema, updateItemSchema } from '@resa-esviere/shared';
+import { Role, createItemSchema, updateItemSchema } from '../../shared/index.js';
 import { authenticate, authorize } from '../../middleware/auth.js';
 import { asyncHandler } from '../../middleware/async-handler.js';
 import * as itemsService from './items.service.js';

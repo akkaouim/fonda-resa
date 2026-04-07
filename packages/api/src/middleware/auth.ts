@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
-import { Role } from '@resa-esviere/shared';
+import { Role } from '../shared/index.js';
 import { env } from '../config/env.js';
 import { AppError } from './error-handler.js';
 
