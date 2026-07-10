@@ -1,0 +1,13 @@
+node_modules
+**/node_modules
+**/dist
+uploads
+.git
+.github
+.env
+.env.local
+.env.production
+*.log
+.DS_Store
+docker-compose.yml
+docker-compose.prod.yml

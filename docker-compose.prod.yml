@@ -1,0 +1,58 @@
+# Production stack for Fonda Resa on the OVH VPS.
+# Fronted by the EXISTING TextBee Caddy (which owns 80/443 and does auto-HTTPS).
+# Only the api joins the shared textbee network so Caddy can reach it by name;
+# Postgres stays on a private network and is never published to the host.
+#
+# Run from ~/fonda-resa:
+#   docker compose --env-file .env.production -f docker-compose.prod.yml up -d --build
+
+services:
+  fonda-resa-db:
+    container_name: fonda-resa-db
+    image: postgres:16-alpine
+    restart: always
+    environment:
+      POSTGRES_DB: resa_esviere
+      POSTGRES_USER: resa
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - fonda_pgdata:/var/lib/postgresql/data
+    networks:
+      - fonda-internal
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U resa -d resa_esviere"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  fonda-resa-api:
+    container_name: fonda-resa-api
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: always
+    env_file:
+      - .env.production
+    expose:
+      - "3000"
+    volumes:
+      - fonda_uploads:/app/uploads
+    depends_on:
+      fonda-resa-db:
+        condition: service_healthy
+    networks:
+      - fonda-internal
+      - textbee-net
+
+networks:
+  fonda-internal:
+    driver: bridge
+  # The network created by the textbee stack; Caddy lives here.
+  textbee-net:
+    external: true
+    name: textbee_textbee-network
+
+volumes:
+  fonda_pgdata:
+  fonda_uploads:

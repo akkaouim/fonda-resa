@@ -1,55 +1,64 @@
 name: Deploy
 
+# Deploys Fonda Resa to the OVH VPS. The app is built ON the server as a Docker
+# image and fronted by the shared Caddy — see docker-compose.prod.yml.
+#
+# Required repository secrets (Settings > Secrets and variables > Actions):
+#   SSH_PRIVATE_KEY  Private key whose public half is in the VPS user's ~/.ssh/authorized_keys
+#   REMOTE_HOST      VPS IP or hostname (e.g. 217.182.252.25)
+#   REMOTE_USER      SSH user (e.g. ubuntu)
+#   REMOTE_PATH      Deploy dir on the VPS (e.g. /home/ubuntu/fonda-resa)
+#
+# The server keeps its own .env.production (secrets, DB password) — this workflow
+# never uploads or overwrites it.
+
 on:
   push:
     branches: [main]
+  workflow_dispatch:
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
 
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: npm
+      # Skip gracefully (green, not red) until the deploy secrets are configured.
+      - name: Check deploy secrets are configured
+        id: check
+        run: |
+          if [ -z "${{ secrets.REMOTE_HOST }}" ]; then
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Deploy secrets not set — skipping deploy. Add SSH_PRIVATE_KEY, REMOTE_HOST, REMOTE_USER, REMOTE_PATH."
+          else
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          fi
 
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Build shared package
-        run: npm run build:shared
-
-      - name: Run tests
-        run: npm run test -w packages/api
-
-      - name: Build API
-        run: npm run build:api
-
-      - name: Build frontend
-        run: npm run build:web
-
-      - name: Deploy to server
+      # Sync the repo to the VPS. Excludes generated dirs and, crucially, the
+      # server-side secrets (.env, .env.production) and uploads volume content.
+      - name: Rsync source to VPS
+        if: steps.check.outputs.configured == 'true'
         uses: easingthemes/ssh-deploy@v5
         with:
           SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
           REMOTE_HOST: ${{ secrets.REMOTE_HOST }}
           REMOTE_USER: ${{ secrets.REMOTE_USER }}
-          SOURCE: "packages/api/dist/ packages/api/prisma/ packages/api/package.json packages/web/dist/ packages/shared/dist/ packages/shared/package.json package.json package-lock.json"
           TARGET: ${{ secrets.REMOTE_PATH }}
+          ARGS: "-rlz --delete"
+          EXCLUDE: "node_modules/, .git/, packages/api/dist/, packages/web/dist/, packages/shared/, uploads/, .env, .env.production, .DS_Store"
 
-      - name: Post-deploy
+      # Rebuild + restart the stack, then apply any new Prisma migrations.
+      - name: Build, restart, migrate
+        if: steps.check.outputs.configured == 'true'
         uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.REMOTE_HOST }}
           username: ${{ secrets.REMOTE_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
+            set -e
             cd ${{ secrets.REMOTE_PATH }}
-            npm ci --omit=dev --workspaces
-            cd packages/api
-            npx prisma migrate deploy
-            pm2 restart resa-api || pm2 start dist/server.js --name resa-api
+            docker compose --env-file .env.production -f docker-compose.prod.yml up -d --build
+            docker compose --env-file .env.production -f docker-compose.prod.yml exec -T fonda-resa-api \
+              npx prisma migrate deploy --schema=packages/api/prisma/schema.prisma
