@@ -35,30 +35,33 @@ jobs:
             echo "configured=true" >> "$GITHUB_OUTPUT"
           fi
 
+      - name: Set up SSH
+        if: steps.check.outputs.configured == 'true'
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H "${{ secrets.REMOTE_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null
+
       # Sync the repo to the VPS. Excludes generated dirs and, crucially, the
       # server-side secrets (.env, .env.production) and uploads volume content.
       - name: Rsync source to VPS
         if: steps.check.outputs.configured == 'true'
-        uses: easingthemes/ssh-deploy@v5
-        with:
-          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
-          REMOTE_HOST: ${{ secrets.REMOTE_HOST }}
-          REMOTE_USER: ${{ secrets.REMOTE_USER }}
-          TARGET: ${{ secrets.REMOTE_PATH }}
-          ARGS: "-rlz --delete"
-          EXCLUDE: "node_modules/, .git/, packages/api/dist/, packages/web/dist/, packages/shared/, uploads/, .env, .env.production, .DS_Store"
+        run: |
+          rsync -rlz --delete -e "ssh -i ~/.ssh/deploy_key" \
+            --exclude 'node_modules/' --exclude '.git/' \
+            --exclude 'packages/api/dist/' --exclude 'packages/web/dist/' \
+            --exclude 'packages/shared/' --exclude 'uploads/' \
+            --exclude '.env' --exclude '.env.production' --exclude '.DS_Store' \
+            ./ "${{ secrets.REMOTE_USER }}@${{ secrets.REMOTE_HOST }}:${{ secrets.REMOTE_PATH }}/"
 
       # Rebuild + restart the stack, then apply any new Prisma migrations.
       - name: Build, restart, migrate
         if: steps.check.outputs.configured == 'true'
-        uses: appleboy/ssh-action@v1
-        with:
-          host: ${{ secrets.REMOTE_HOST }}
-          username: ${{ secrets.REMOTE_USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          script: |
-            set -e
-            cd ${{ secrets.REMOTE_PATH }}
+        run: |
+          ssh -i ~/.ssh/deploy_key "${{ secrets.REMOTE_USER }}@${{ secrets.REMOTE_HOST }}" bash -euo pipefail <<'REMOTE'
+            cd "${{ secrets.REMOTE_PATH }}"
             docker compose --env-file .env.production -f docker-compose.prod.yml up -d --build
             docker compose --env-file .env.production -f docker-compose.prod.yml exec -T fonda-resa-api \
               npx prisma migrate deploy --schema=packages/api/prisma/schema.prisma
+          REMOTE
