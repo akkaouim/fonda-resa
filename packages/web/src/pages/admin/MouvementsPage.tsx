@@ -376,7 +376,7 @@ export default function MouvementsPage() {
 
     if (!reservationId) {
       if (!dateRetour) { setError('Indiquez la date de retour prevue.'); return; }
-      if (dateRetour <= dateDebut) { setError('La date de retour doit etre posterieure a la date de sortie.'); return; }
+      if (dateRetour < dateDebut) { setError('La date de retour ne peut pas etre anterieure a la date de sortie.'); return; }
     }
 
     const payload: any = {

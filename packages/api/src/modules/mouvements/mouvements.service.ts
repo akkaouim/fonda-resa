@@ -44,8 +44,8 @@ export async function createSortie(data: CreateSortieData, adminId: number) {
     if (!dateRetourPrevue) {
       throw new AppError(400, 'MISSING_RETURN_DATE', 'La date de retour prevue est obligatoire pour une sortie sans reservation');
     }
-    if (dateRetourPrevue <= dateDebut) {
-      throw new AppError(400, 'INVALID_RETURN_DATE', 'La date de retour doit etre posterieure a la date de sortie');
+    if (dateRetourPrevue < dateDebut) {
+      throw new AppError(400, 'INVALID_RETURN_DATE', 'La date de retour ne peut pas etre anterieure a la date de sortie');
     }
   }
 
