@@ -21,7 +21,7 @@ export default function LoginPage() {
     <div className="flex min-h-svh items-center justify-center bg-muted p-4">
       <div className="w-full max-w-md rounded-lg bg-background p-8 shadow-lg">
         <div className="mb-6 text-center">
-          <img src="/logo-fondacio.png" alt="Fondacio" className="mx-auto mb-3 h-10" />
+          <img src="/logo-fondacio.png" alt="Fondacio" className="mx-auto mb-3 h-10 dark:brightness-0 dark:invert" />
           <h1 className="text-2xl font-semibold">Fonda Resa</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             Gestion du materiel — Fondacio Angers
