@@ -1,6 +1,7 @@
 import { prisma } from '../../config/database.js';
 import { AppError } from '../../middleware/error-handler.js';
 import { logAudit } from '../../services/audit.service.js';
+import { getAvailableQuantity } from '../reservations/availability.service.js';
 
 const MOUVEMENT_INCLUDE = {
   item: { include: { categorie: true, localisation: true } },
@@ -20,6 +21,8 @@ interface LigneMouvement {
 
 interface CreateSortieData {
   reservationId?: number;
+  dateDebut?: Date;
+  dateRetourPrevue?: Date;
   lignes: LigneMouvement[];
 }
 
@@ -33,11 +36,38 @@ export async function createSortie(data: CreateSortieData, adminId: number) {
     }
   }
 
+  // For a check-out WITHOUT a reservation, an expected return date is required and
+  // the requested quantities must not exceed what is available over the period.
+  const dateDebut = data.dateDebut ?? new Date();
+  const dateRetourPrevue = data.reservationId ? null : data.dateRetourPrevue ?? null;
+  if (!data.reservationId) {
+    if (!dateRetourPrevue) {
+      throw new AppError(400, 'MISSING_RETURN_DATE', 'La date de retour prevue est obligatoire pour une sortie sans reservation');
+    }
+    if (dateRetourPrevue <= dateDebut) {
+      throw new AppError(400, 'INVALID_RETURN_DATE', 'La date de retour doit etre posterieure a la date de sortie');
+    }
+  }
+
   const mouvements = [];
   for (const ligne of data.lignes) {
     const item = await prisma.item.findUnique({ where: { id: ligne.itemId } });
     if (!item || !item.actif) {
       throw new AppError(400, 'ITEM_NOT_FOUND', `Item #${ligne.itemId} introuvable`);
+    }
+
+    // Availability check only for check-outs without a reservation (a validated
+    // reservation has already reserved its quantities).
+    if (!data.reservationId) {
+      const available = await getAvailableQuantity(item.id, dateDebut, dateRetourPrevue!);
+      if (ligne.quantite > available) {
+        throw new AppError(
+          400,
+          'INSUFFICIENT_QUANTITY',
+          `Seulement ${available} unite(s) disponible(s) pour "${item.nom}" sur cette periode`,
+          { itemId: item.id, available }
+        );
+      }
     }
 
     const mouvement = await prisma.mouvement.create({
@@ -47,6 +77,7 @@ export async function createSortie(data: CreateSortieData, adminId: number) {
         reservationId: data.reservationId || null,
         typeMouvement: 'sortie',
         quantite: ligne.quantite,
+        dateRetourPrevue,
         etatConstate: (ligne.etatConstate as any) || null,
         commentaire: ligne.commentaire || null,
       },

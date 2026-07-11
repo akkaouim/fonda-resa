@@ -16,6 +16,8 @@ const ligneRetourSchema = ligneMouvementSchema.extend({
 
 export const createSortieSchema = z.object({
   reservationId: z.number().int().positive().optional(),
+  dateDebut: z.coerce.date().optional(),
+  dateRetourPrevue: z.coerce.date().optional(),
   lignes: z.array(ligneMouvementSchema).min(1, 'Au moins un item doit etre selectionne'),
 });
 

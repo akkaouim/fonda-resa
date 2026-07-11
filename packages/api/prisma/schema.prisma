@@ -196,6 +196,7 @@ model Mouvement {
   typeMouvement  TypeMouvement  @map("type_mouvement")
   quantite       Int
   dateEffective  DateTime       @default(now()) @map("date_effective")
+  dateRetourPrevue DateTime?    @map("date_retour_prevue")
   etatConstate   Etat?          @map("etat_constate")
   commentaire    String?        @db.VarChar(500)
   createdAt      DateTime       @default(now()) @map("created_at")
