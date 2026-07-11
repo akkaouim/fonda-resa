@@ -15,8 +15,11 @@ import {
   LogOut,
   Menu,
   X,
+  Sun,
+  Moon,
 } from 'lucide-react';
 import { useState } from 'react';
+import { useThemeStore } from '../../stores/theme';
 
 const memberNav = [
   { to: '/', icon: Home, label: 'Accueil' },
@@ -57,6 +60,7 @@ export default function AppLayout() {
   const logout = useLogout();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const { theme, toggleTheme } = useThemeStore();
 
   const handleLogout = () => {
     logout.mutate(undefined, { onSuccess: () => navigate('/login') });
@@ -103,6 +107,14 @@ export default function AppLayout() {
         </nav>
 
         <div className="border-t border-border p-3 space-y-1">
+          <button
+            onClick={toggleTheme}
+            className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm text-muted-foreground hover:bg-muted hover:text-foreground"
+            aria-label={theme === 'dark' ? 'Activer le mode clair' : 'Activer le mode sombre'}
+          >
+            {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+            <span>{theme === 'dark' ? 'Mode clair' : 'Mode sombre'}</span>
+          </button>
           <NavLink
             to="/profil"
             className={({ isActive }) =>

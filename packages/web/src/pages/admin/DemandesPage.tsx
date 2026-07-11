@@ -120,11 +120,11 @@ export default function DemandesPage() {
                         )}
                         <div className="flex gap-2">
                           <button onClick={() => handleApprove(r.id)} disabled={approve.isPending}
-                            className="flex items-center gap-1 rounded-md bg-green-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-50">
+                            className="flex items-center gap-1 rounded-md bg-green-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-green-700 dark:hover:bg-green-500 disabled:opacity-50">
                             <Check className="h-4 w-4" /> Valider
                           </button>
                           <button onClick={() => handleReject(r.id)} disabled={reject.isPending}
-                            className="flex items-center gap-1 rounded-md bg-red-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50">
+                            className="flex items-center gap-1 rounded-md bg-red-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-red-700 dark:hover:bg-red-500 disabled:opacity-50">
                             <X className="h-4 w-4" /> Refuser
                           </button>
                         </div>
