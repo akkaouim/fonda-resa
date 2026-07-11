@@ -53,6 +53,7 @@ export {
   forgotPasswordSchema,
   resetPasswordSchema,
   changePasswordSchema,
+  resetUserPasswordSchema,
 } from './schemas/user.schema.js';
 
 export {

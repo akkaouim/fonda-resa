@@ -1,7 +1,7 @@
 import { prisma } from '../../config/database.js';
 import { AppError } from '../../middleware/error-handler.js';
 import { hashPassword } from '../auth/auth.service.js';
-import { sendAccountCreated } from '../../services/email.service.js';
+import { sendAccountCreated, sendPasswordResetByAdmin } from '../../services/email.service.js';
 import { logAudit } from '../../services/audit.service.js';
 import type { Role } from '@prisma/client';
 
@@ -99,6 +99,32 @@ export async function updateUser(
     entiteId: id,
     details: data,
   });
+
+  return updated;
+}
+
+export async function resetUserPassword(id: number, password: string, adminId: number) {
+  const user = await prisma.utilisateur.findUnique({ where: { id } });
+  if (!user) {
+    throw new AppError(404, 'NOT_FOUND', 'Utilisateur introuvable');
+  }
+
+  const hashedPassword = await hashPassword(password);
+  const updated = await prisma.utilisateur.update({
+    where: { id },
+    data: { motDePasse: hashedPassword },
+    select: USER_SELECT,
+  });
+
+  await logAudit({
+    utilisateurId: adminId,
+    action: 'user.reset_password',
+    entiteType: 'Utilisateur',
+    entiteId: id,
+  });
+
+  // Notify the user of their new temporary password (best effort)
+  sendPasswordResetByAdmin(user.email, user.prenom, password).catch(() => {});
 
   return updated;
 }

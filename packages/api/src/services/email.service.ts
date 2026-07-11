@@ -98,3 +98,17 @@ export async function sendAccountCreated(to: string, prenom: string, tempPasswor
     `,
   });
 }
+
+export async function sendPasswordResetByAdmin(to: string, prenom: string, tempPassword: string) {
+  await sendEmail({
+    to,
+    subject: 'Votre mot de passe a ete reinitialise',
+    html: `
+      <h2>Bonjour, ${prenom}</h2>
+      <p>Un administrateur a reinitialise votre mot de passe sur Fonda Resa.</p>
+      <p><strong>Nouveau mot de passe temporaire :</strong> ${tempPassword}</p>
+      <p>Connectez-vous et changez votre mot de passe des que possible.</p>
+      <p><a href="${env.FRONTEND_URL}/login">Se connecter</a></p>
+    `,
+  });
+}

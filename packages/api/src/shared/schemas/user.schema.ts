@@ -35,3 +35,7 @@ export const changePasswordSchema = z.object({
   currentPassword: z.string().min(1, 'Le mot de passe actuel est requis'),
   newPassword: z.string().min(8, 'Le nouveau mot de passe doit contenir au moins 8 caracteres'),
 });
+
+export const resetUserPasswordSchema = z.object({
+  password: z.string().min(8, 'Le mot de passe doit contenir au moins 8 caracteres'),
+});

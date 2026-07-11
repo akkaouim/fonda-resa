@@ -13,6 +13,7 @@ router.get('/', asyncHandler(usersController.list));
 router.get('/:id', asyncHandler(usersController.getById));
 router.post('/', asyncHandler(usersController.create));
 router.put('/:id', asyncHandler(usersController.update));
+router.post('/:id/reset-password', asyncHandler(usersController.resetPassword));
 router.patch('/:id/deactivate', asyncHandler(usersController.deactivate));
 
 export { router as usersRoutes };

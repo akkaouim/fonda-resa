@@ -53,3 +53,15 @@ export function useDeactivateUser() {
     },
   });
 }
+
+export function useResetUserPassword() {
+  return useMutation({
+    mutationFn: async ({ id, password }: { id: number; password: string }) => {
+      const { data } = await api.post<{ success: boolean; data: UtilisateurPublic }>(
+        `/users/${id}/reset-password`,
+        { password }
+      );
+      return data.data;
+    },
+  });
+}

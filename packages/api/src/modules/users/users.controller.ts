@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { createUserSchema, updateUserSchema } from '../../shared/index.js';
+import { createUserSchema, updateUserSchema, resetUserPasswordSchema } from '../../shared/index.js';
 import * as usersService from './users.service.js';
 
 export async function list(_req: Request, res: Response) {
@@ -21,6 +21,12 @@ export async function create(req: Request, res: Response) {
 export async function update(req: Request, res: Response) {
   const data = updateUserSchema.parse(req.body);
   const user = await usersService.updateUser(Number(req.params.id), data, req.user!.sub);
+  res.json({ success: true, data: user });
+}
+
+export async function resetPassword(req: Request, res: Response) {
+  const { password } = resetUserPasswordSchema.parse(req.body);
+  const user = await usersService.resetUserPassword(Number(req.params.id), password, req.user!.sub);
   res.json({ success: true, data: user });
 }
 
