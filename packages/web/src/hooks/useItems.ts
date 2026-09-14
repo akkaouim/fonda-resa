@@ -146,3 +146,28 @@ export function useCreateLocalisation() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['localisations'] }),
   });
 }
+
+export function useUpdateLocalisation() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, ...d }: { id: number; nom: string; estSurSite: boolean; description?: string }) => {
+      const { data } = await api.put(`/localisations/${id}`, d);
+      return data.data;
+    },
+    // Items display their localisation name, so a rename must refresh them too.
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['localisations'] });
+      qc.invalidateQueries({ queryKey: ['items'] });
+    },
+  });
+}
+
+export function useDeleteLocalisation() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: number) => {
+      await api.delete(`/localisations/${id}`);
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['localisations'] }),
+  });
+}
