@@ -15,7 +15,7 @@ export interface Item {
   perimetreUtilisation: PerimetreUtilisation;
   marquage: string | null;
   typeItem: TypeItem;
-  photoUrl: string | null;
+  photoUrls: string[];
   dateAcquisition: Date | null;
   valeurEstimee: number | null;
   notes: string | null;

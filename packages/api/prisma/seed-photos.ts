@@ -126,7 +126,7 @@ async function main() {
       if (!fs.existsSync(filepath)) {
         await downloadFile(url, filepath);
       }
-      await prisma.item.update({ where: { id: item.id }, data: { photoUrl } });
+      await prisma.item.update({ where: { id: item.id }, data: { photoUrls: [photoUrl] } });
       downloaded++;
       console.log(`  [ok] ${item.nom}`);
     } catch (err: any) {

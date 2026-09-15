@@ -11,17 +11,19 @@ const prisma = new PrismaClient();
 
 async function main() {
   const uploadDir = path.resolve(__dirname, '../../../uploads/photos');
-  const items = await prisma.item.findMany({ where: { photoUrl: { not: null } } });
+  const items = await prisma.item.findMany({ where: { NOT: { photoUrls: { isEmpty: true } } } });
   let cleared = 0;
   for (const item of items) {
-    const filename = item.photoUrl!.replace('/uploads/photos/', '');
-    const filepath = path.join(uploadDir, filename);
-    if (!fs.existsSync(filepath)) {
-      await prisma.item.update({ where: { id: item.id }, data: { photoUrl: null } });
-      console.log(`Cleared: ${item.nom}`);
-      cleared++;
+    const kept = item.photoUrls.filter((url) => {
+      const filename = url.replace('/uploads/photos/', '');
+      return fs.existsSync(path.join(uploadDir, filename));
+    });
+    if (kept.length !== item.photoUrls.length) {
+      await prisma.item.update({ where: { id: item.id }, data: { photoUrls: kept } });
+      console.log(`Cleared ${item.photoUrls.length - kept.length}: ${item.nom}`);
+      cleared += item.photoUrls.length - kept.length;
     } else {
-      console.log(`OK: ${item.nom} (${filepath})`);
+      console.log(`OK: ${item.nom}`);
     }
   }
   console.log(`\n${cleared} photo URLs cleared`);

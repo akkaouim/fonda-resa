@@ -60,7 +60,7 @@ async function main() {
 
     try {
       await downloadFile(url, filepath);
-      await prisma.item.update({ where: { id: item.id }, data: { photoUrl: `/uploads/photos/${filename}` } });
+      await prisma.item.update({ where: { id: item.id }, data: { photoUrls: [`/uploads/photos/${filename}`] } });
       console.log(`  [ok] ${nom}`);
     } catch (err: any) {
       console.log(`  [fail] ${nom}: ${err.message}`);

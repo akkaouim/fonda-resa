@@ -24,7 +24,7 @@ const ITEM = {
   typeItem: 'equipement',
   notes: '',
   valeurEstimee: 12,
-  photoUrl: null,
+  photoUrls: [],
   actif: true,
   categorie: { id: 1, nom: 'Cables' },
   localisation: { id: 1, nom: 'Grande salle' },

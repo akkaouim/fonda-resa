@@ -89,7 +89,6 @@ export async function createItem(data: Prisma.ItemCreateInput & Record<string, a
       perimetreUtilisation: data.perimetreUtilisation,
       marquage: data.marquage,
       typeItem: data.typeItem,
-      photoUrl: data.photoUrl,
       dateAcquisition: data.dateAcquisition ? new Date(data.dateAcquisition) : undefined,
       valeurEstimee: data.valeurEstimee,
       notes: data.notes,

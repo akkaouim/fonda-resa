@@ -128,7 +128,7 @@ model Item {
   perimetreUtilisation  PerimetreUtilisation @default(libre) @map("perimetre_utilisation")
   marquage              String?              @db.VarChar(200)
   typeItem              TypeItem             @default(equipement) @map("type_item")
-  photoUrl              String?              @map("photo_url")
+  photoUrls             String[]             @map("photo_urls")
   dateAcquisition       DateTime?            @map("date_acquisition")
   valeurEstimee         Decimal?             @map("valeur_estimee") @db.Decimal(10, 2)
   notes                 String?
