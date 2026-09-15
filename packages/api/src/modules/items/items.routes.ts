@@ -9,12 +9,13 @@ import { prisma } from '../../config/database.js';
 import multer from 'multer';
 import path from 'path';
 import { env } from '../../config/env.js';
+import { PHOTOS_DIR } from '../../config/paths.js';
 import fs from 'fs';
 
 const router = Router();
 
 // Photo upload config
-const uploadDir = path.resolve(env.UPLOAD_DIR, 'photos');
+const uploadDir = PHOTOS_DIR;
 fs.mkdirSync(uploadDir, { recursive: true });
 
 const storage = multer.diskStorage({
@@ -131,7 +132,7 @@ router.delete('/:id/photos', authenticate, authorize(Role.ADMIN), asyncHandler(a
 
   const filename = photoFilenameFromUrl(url);
   if (filename) {
-    await fs.promises.unlink(path.join(env.UPLOAD_DIR, 'photos', filename)).catch(() => { /* already gone */ });
+    await fs.promises.unlink(path.join(PHOTOS_DIR, filename)).catch(() => { /* already gone */ });
   }
 
   const updated = await itemsService.updateItem(

@@ -36,13 +36,12 @@ app.use(cookieParser());
 // Serve frontend in production (or when built)
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { UPLOADS_ROOT } from './config/paths.js';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-// Static files (uploaded photos) — resolve relative to project root
-const uploadDir = path.isAbsolute(env.UPLOAD_DIR)
-  ? env.UPLOAD_DIR
-  : path.resolve(__dirname, '../../../', env.UPLOAD_DIR);
-app.use('/uploads', express.static(uploadDir));
+// Static files (uploaded photos). The directory comes from config/paths so
+// that serving and writing can never resolve to different places.
+app.use('/uploads', express.static(UPLOADS_ROOT));
 const frontendDist = path.resolve(__dirname, '../../web/dist');
 app.use(express.static(frontendDist));
 
