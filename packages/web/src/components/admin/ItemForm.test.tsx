@@ -108,6 +108,13 @@ describe('ItemForm photo gallery', () => {
     expect(onSave.mock.calls[0][0]._removedPhotoUrls).toEqual(['/uploads/photos/a.jpg']);
   });
 
+  it('keeps its previews square, like the lists', () => {
+    renderWithPhotos(['/uploads/photos/a.jpg']);
+
+    const preview = screen.getByAltText('Photo 1');
+    expect(preview.className).toContain('object-cover');
+  });
+
   it('stops offering the add button once the item is full', () => {
     renderWithPhotos([
       '/uploads/photos/a.jpg', '/uploads/photos/b.jpg', '/uploads/photos/c.jpg',

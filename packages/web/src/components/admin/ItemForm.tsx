@@ -131,7 +131,7 @@ export default function ItemForm({ item, categories, localisations, onSave, isSa
           <div className="flex flex-wrap items-start gap-3">
             {keptUrls.map((url, i) => (
               <div key={url} className="relative">
-                <img src={url} alt={`Photo ${i + 1}`} className="h-24 w-24 rounded-md border border-border object-contain" />
+                <img src={url} alt={`Photo ${i + 1}`} className="h-24 w-24 rounded-md border border-border object-cover" />
                 <button type="button" onClick={() => removeKept(url)} aria-label={`Retirer la photo ${i + 1}`}
                   className="absolute -right-2 -top-2 rounded-full bg-destructive p-0.5 text-white hover:bg-destructive/80">
                   <X className="h-3.5 w-3.5" />
@@ -141,7 +141,7 @@ export default function ItemForm({ item, categories, localisations, onSave, isSa
 
             {pendingFiles.map((file, i) => (
               <div key={`${file.name}-${i}`} className="relative">
-                <img src={URL.createObjectURL(file)} alt={file.name} className="h-24 w-24 rounded-md border border-dashed border-primary object-contain" />
+                <img src={URL.createObjectURL(file)} alt={file.name} className="h-24 w-24 rounded-md border border-dashed border-primary object-cover" />
                 <button type="button" onClick={() => removePending(i)} aria-label={`Retirer ${file.name}`}
                   className="absolute -right-2 -top-2 rounded-full bg-destructive p-0.5 text-white hover:bg-destructive/80">
                   <X className="h-3.5 w-3.5" />

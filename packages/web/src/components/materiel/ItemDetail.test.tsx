@@ -49,3 +49,53 @@ describe('ItemDetail photos', () => {
     expect(screen.queryByAltText('Sono portable')).toBeNull();
   });
 });
+
+describe('ItemDetail lightbox', () => {
+  it('keeps the preview square, cropping to fill', () => {
+    render(<ItemDetail item={ITEM} />);
+
+    const preview = screen.getByAltText('Sono portable');
+    expect(preview.className).toContain('object-cover');
+    expect(preview.className).toContain('h-40');
+    expect(preview.className).toContain('w-40');
+  });
+
+  it('stays closed until the active photo is clicked', () => {
+    render(<ItemDetail item={ITEM} />);
+
+    expect(screen.queryByAltText('Sono portable en grand')).toBeNull();
+  });
+
+  it('opens the viewer on the active photo', async () => {
+    render(<ItemDetail item={ITEM} />);
+
+    await userEvent.click(screen.getByLabelText('Agrandir la photo'));
+
+    expect(screen.getByAltText('Sono portable en grand').getAttribute('src')).toBe('/uploads/photos/a.jpg');
+  });
+
+  it('opens the viewer on whichever thumbnail is active', async () => {
+    render(<ItemDetail item={ITEM} />);
+    await userEvent.click(screen.getByLabelText('Voir la photo 3'));
+
+    await userEvent.click(screen.getByLabelText('Agrandir la photo'));
+
+    expect(screen.getByAltText('Sono portable en grand').getAttribute('src')).toBe('/uploads/photos/c.jpg');
+  });
+
+  it('carries the viewer choice back to the preview on close', async () => {
+    render(<ItemDetail item={ITEM} />);
+    await userEvent.click(screen.getByLabelText('Agrandir la photo'));
+
+    await userEvent.keyboard('{ArrowRight}');
+    await userEvent.keyboard('{Escape}');
+
+    expect(screen.getByAltText('Sono portable').getAttribute('src')).toBe('/uploads/photos/b.jpg');
+  });
+
+  it('offers nothing to enlarge when the item has no photo', () => {
+    render(<ItemDetail item={{ ...ITEM, photoUrls: [] }} />);
+
+    expect(screen.queryByLabelText('Agrandir la photo')).toBeNull();
+  });
+});

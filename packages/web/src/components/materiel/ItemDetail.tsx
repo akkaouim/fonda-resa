@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import PhotoLightbox from './PhotoLightbox';
 import { MapPin, Tag, Calendar, Euro, Hash, Image as ImageIcon } from 'lucide-react';
 
 const ETAT_LABELS: Record<string, { label: string; color: string }> = {
@@ -34,6 +35,7 @@ function Field({ label, value, icon: Icon }: { label: string; value: React.React
 export default function ItemDetail({ item }: Props) {
   const photos: string[] = item.photoUrls ?? [];
   const [mainPhoto, setMainPhoto] = useState(0);
+  const [enlarged, setEnlarged] = useState(false);
   const current = photos[mainPhoto] ?? photos[0];
 
   const etat = ETAT_LABELS[item.etat];
@@ -45,9 +47,12 @@ export default function ItemDetail({ item }: Props) {
       {/* Photo */}
       <div className="flex flex-col items-center gap-2 sm:w-40">
         {current ? (
-          <img src={current} alt={item.nom} className="max-h-40 rounded-md border border-border object-contain" />
+          <button type="button" onClick={() => setEnlarged(true)} aria-label="Agrandir la photo"
+            className="rounded-md border border-border">
+            <img src={current} alt={item.nom} className="h-40 w-40 rounded-md object-cover" />
+          </button>
         ) : (
-          <div className="flex h-32 w-32 items-center justify-center rounded-md border border-dashed border-border bg-muted/50">
+          <div className="flex h-40 w-40 items-center justify-center rounded-md border border-dashed border-border bg-muted/50">
             <ImageIcon className="h-10 w-10 text-muted-foreground/40" />
           </div>
         )}
@@ -63,6 +68,11 @@ export default function ItemDetail({ item }: Props) {
               </button>
             ))}
           </div>
+        )}
+
+        {enlarged && current && (
+          <PhotoLightbox photos={photos} index={mainPhoto} alt={item.nom}
+            onNavigate={setMainPhoto} onClose={() => setEnlarged(false)} />
         )}
       </div>
 
