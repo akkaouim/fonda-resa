@@ -59,10 +59,13 @@ export default function InventairePage() {
 
   const handleDuplicate = (item: any, e: React.MouseEvent) => {
     e.stopPropagation();
-    const { id, categorie, sousCategorie, localisation, photoUrl, createdAt, updatedAt, ...copy } = item;
+    // photoUrls is deliberately dropped: sharing a file between two items would
+    // make removing a photo from one break the other.
+    const { id, categorie, sousCategorie, localisation, photoUrls, createdAt, updatedAt, ...copy } = item;
+    void id; void categorie; void sousCategorie; void localisation; void photoUrls; void createdAt; void updatedAt;
     setDuplicateSource({
       ...copy,
-      photoUrl,
+      photoUrls: [],
       nom: `${item.nom} (copie)`,
       // The marking identifies one physical unit; the copy is a different one.
       marquage: '',

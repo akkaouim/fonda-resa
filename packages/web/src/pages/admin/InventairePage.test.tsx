@@ -24,7 +24,7 @@ const ITEM = {
   typeItem: 'equipement',
   notes: '',
   valeurEstimee: 12,
-  photoUrls: [],
+  photoUrls: ['/uploads/photos/a.jpg'],
   actif: true,
   categorie: { id: 1, nom: 'Cables' },
   localisation: { id: 1, nom: 'Grande salle' },
@@ -106,6 +106,14 @@ describe('duplicating an item', () => {
 
     expect(screen.getByText('Ajouter un item')).toBeTruthy();
     expect(screen.queryByDisplayValue('Cable HDMI 5m (copie)')).toBeNull();
+  });
+
+  it('starts the copy without photos, so no two items share a file', async () => {
+    await renderPage();
+
+    await userEvent.click(screen.getByLabelText('Dupliquer Cable HDMI 5m'));
+
+    expect(screen.getByText('0/6')).toBeTruthy();
   });
 
   it('still edits in place when the pencil is used', async () => {
