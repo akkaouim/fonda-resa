@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Upload, X, Image as ImageIcon } from 'lucide-react';
-import { api } from '../../lib/api';
-import { validatePhotoFile } from '../../lib/photo';
+import { validatePhotoFile, MAX_PHOTOS_PER_ITEM } from '../../lib/photo';
 
 interface Props {
   item?: any;
@@ -29,9 +28,9 @@ export default function ItemForm({ item, categories, localisations, onSave, isSa
     valeurEstimee: '' as string | number,
   });
 
-  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
-  const [photoFile, setPhotoFile] = useState<File | null>(null);
-  const [photoUploading, setPhotoUploading] = useState(false);
+  const [keptUrls, setKeptUrls] = useState<string[]>([]);
+  const [removedUrls, setRemovedUrls] = useState<string[]>([]);
+  const [pendingFiles, setPendingFiles] = useState<File[]>([]);
   const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -51,46 +50,44 @@ export default function ItemForm({ item, categories, localisations, onSave, isSa
         notes: item.notes || '',
         valeurEstimee: item.valeurEstimee || '',
       });
-      setPhotoPreview(item.photoUrl || null);
-      setPhotoFile(null);
+      setKeptUrls(item.photoUrls ?? []);
+      setRemovedUrls([]);
+      setPendingFiles([]);
     }
   }, [item]);
 
   const selectedCat = categories.find((c: any) => c.id === Number(form.categorieId));
 
+  const totalPhotos = keptUrls.length + pendingFiles.length;
+
   const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const check = validatePhotoFile(file);
-    if (!check.ok) {
-      alert(check.message);
-      if (fileRef.current) fileRef.current.value = '';
+    const chosen = Array.from(e.target.files ?? []);
+    if (fileRef.current) fileRef.current.value = '';
+    if (chosen.length === 0) return;
+
+    for (const file of chosen) {
+      const check = validatePhotoFile(file);
+      if (!check.ok) {
+        alert(check.message);
+        return;
+      }
+    }
+
+    if (totalPhotos + chosen.length > MAX_PHOTOS_PER_ITEM) {
+      alert(`Un item ne peut pas depasser ${MAX_PHOTOS_PER_ITEM} photos. Il reste ${MAX_PHOTOS_PER_ITEM - totalPhotos} place(s).`);
       return;
     }
-    setPhotoFile(file);
-    setPhotoPreview(URL.createObjectURL(file));
+
+    setPendingFiles((files) => [...files, ...chosen]);
   };
 
-  const removePhoto = () => {
-    setPhotoFile(null);
-    setPhotoPreview(item?.photoUrl || null);
-    if (fileRef.current) fileRef.current.value = '';
+  const removeKept = (url: string) => {
+    setKeptUrls((urls) => urls.filter((u) => u !== url));
+    setRemovedUrls((urls) => [...urls, url]);
   };
 
-  const uploadPhoto = async (itemId: number) => {
-    if (!photoFile) return;
-    setPhotoUploading(true);
-    try {
-      const formData = new FormData();
-      formData.append('photo', photoFile);
-      await api.post(`/items/${itemId}/photo`, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
-    } catch {
-      alert('Erreur lors de l\'upload de la photo.');
-    } finally {
-      setPhotoUploading(false);
-    }
+  const removePending = (index: number) => {
+    setPendingFiles((files) => files.filter((_, i) => i !== index));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -111,12 +108,8 @@ export default function ItemForm({ item, categories, localisations, onSave, isSa
     if (form.notes) data.notes = form.notes;
     if (form.valeurEstimee) data.valeurEstimee = Number(form.valeurEstimee);
 
-    // If editing and there's a new photo, upload after save
-    if (photoFile && item?.id) {
-      await uploadPhoto(item.id);
-    }
-    // For new items, we pass a callback hint — photo will be uploaded after creation
-    data._pendingPhoto = photoFile;
+    data._pendingPhotos = pendingFiles;
+    data._removedPhotoUrls = removedUrls;
     onSave(data);
   };
 
@@ -134,32 +127,41 @@ export default function ItemForm({ item, categories, localisations, onSave, isSa
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {/* Photo */}
         <div className="sm:col-span-2 lg:col-span-3">
-          <label className="mb-1 block text-sm">Photo</label>
-          <div className="flex items-start gap-4">
-            {photoPreview ? (
-              <div className="relative">
-                <img src={photoPreview} alt="Apercu" className="h-28 w-28 rounded-md border border-border object-contain" />
-                <button type="button" onClick={removePhoto}
+          <label className="mb-1 block text-sm">Photos <span className="text-muted-foreground">{totalPhotos}/{MAX_PHOTOS_PER_ITEM}</span></label>
+          <div className="flex flex-wrap items-start gap-3">
+            {keptUrls.map((url, i) => (
+              <div key={url} className="relative">
+                <img src={url} alt={`Photo ${i + 1}`} className="h-24 w-24 rounded-md border border-border object-contain" />
+                <button type="button" onClick={() => removeKept(url)} aria-label={`Retirer la photo ${i + 1}`}
                   className="absolute -right-2 -top-2 rounded-full bg-destructive p-0.5 text-white hover:bg-destructive/80">
                   <X className="h-3.5 w-3.5" />
                 </button>
               </div>
-            ) : (
-              <div className="flex h-28 w-28 items-center justify-center rounded-md border border-dashed border-border bg-muted/50">
+            ))}
+
+            {pendingFiles.map((file, i) => (
+              <div key={`${file.name}-${i}`} className="relative">
+                <img src={URL.createObjectURL(file)} alt={file.name} className="h-24 w-24 rounded-md border border-dashed border-primary object-contain" />
+                <button type="button" onClick={() => removePending(i)} aria-label={`Retirer ${file.name}`}
+                  className="absolute -right-2 -top-2 rounded-full bg-destructive p-0.5 text-white hover:bg-destructive/80">
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            ))}
+
+            {totalPhotos === 0 && (
+              <div className="flex h-24 w-24 items-center justify-center rounded-md border border-dashed border-border bg-muted/50">
                 <ImageIcon className="h-8 w-8 text-muted-foreground/40" />
               </div>
             )}
-            <div className="flex-1">
-              <input ref={fileRef} type="file" accept="image/*" onChange={handlePhotoSelect} className="hidden" />
-              <button type="button" onClick={() => fileRef.current?.click()}
-                className="flex items-center gap-2 rounded-md border border-input px-3 py-2 text-sm hover:bg-muted">
-                <Upload className="h-4 w-4" />
-                {photoPreview ? 'Changer la photo' : 'Ajouter une photo'}
-              </button>
-              <p className="mt-1 text-xs text-muted-foreground">JPG, PNG ou WebP. 10 Mo max.</p>
-              {photoUploading && <p className="mt-1 text-xs text-primary">Upload en cours...</p>}
-            </div>
           </div>
+
+          <input ref={fileRef} type="file" accept="image/*" multiple onChange={handlePhotoSelect} className="hidden" />
+          <button type="button" onClick={() => fileRef.current?.click()} disabled={totalPhotos >= MAX_PHOTOS_PER_ITEM}
+            className="mt-2 flex items-center gap-2 rounded-md border border-input px-3 py-2 text-sm hover:bg-muted disabled:opacity-50">
+            <Upload className="h-4 w-4" /> Ajouter des photos
+          </button>
+          <p className="mt-1 text-xs text-muted-foreground">JPG, PNG ou WebP. 10 Mo max par photo.</p>
         </div>
 
         <div className="sm:col-span-2 lg:col-span-3">
@@ -257,9 +259,9 @@ export default function ItemForm({ item, categories, localisations, onSave, isSa
       </div>
 
       <div className="flex gap-2">
-        <button type="submit" disabled={isSaving || photoUploading}
+        <button type="submit" disabled={isSaving}
           className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50">
-          {isSaving || photoUploading ? 'Enregistrement...' : item?.id ? 'Modifier' : 'Creer'}
+          {isSaving ? 'Enregistrement...' : item?.id ? 'Modifier' : 'Creer'}
         </button>
         <button type="button" onClick={onCancel}
           className="rounded-md border border-input px-4 py-2 text-sm hover:bg-muted">

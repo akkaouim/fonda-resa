@@ -1,6 +1,7 @@
 import { useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useItems, useCategories, useLocalisations, useCreateItem, useUpdateItem, useDeleteItem, useImportItems } from '../../hooks/useItems';
-import { api } from '../../lib/api';
+import { syncItemPhotos } from '../../lib/photo';
 import { Search, Plus, X, Upload, Pencil, Trash2, ChevronRight, MapPin, Tags, Copy } from 'lucide-react';
 import ItemForm from '../../components/admin/ItemForm';
 import ImportWizard from '../../components/admin/ImportWizard';
@@ -9,6 +10,7 @@ import LocalisationsPanel from '../../components/admin/LocalisationsPanel';
 import CategoriesPanel from '../../components/admin/CategoriesPanel';
 
 export default function InventairePage() {
+  const qc = useQueryClient();
   const [search, setSearch] = useState('');
   const [categorieId, setCategorieId] = useState<number | undefined>();
   const [page, setPage] = useState(1);
@@ -30,25 +32,26 @@ export default function InventairePage() {
   const importItems = useImportItems();
 
   const handleSave = (formData: Record<string, any>) => {
-    const { _pendingPhoto, ...itemData } = formData;
+    const { _pendingPhotos = [], _removedPhotoUrls = [], ...itemData } = formData;
+
     if (editingItem) {
       updateItem.mutate({ id: editingItem.id, ...itemData }, {
-        onSuccess: () => { setEditingItem(null); setShowForm(false); },
+        onSuccess: async () => {
+          await syncItemPhotos(editingItem.id, _removedPhotoUrls, _pendingPhotos);
+          qc.invalidateQueries({ queryKey: ['items'] });
+          setEditingItem(null);
+          setShowForm(false);
+        },
       });
     } else {
       createItem.mutate(itemData, {
         onSuccess: async (newItem: any) => {
-          // Upload photo for newly created item
-          if (_pendingPhoto && newItem?.id) {
-            const fd = new FormData();
-            fd.append('photo', _pendingPhoto);
-            try {
-              await api.post(`/items/${newItem.id}/photo`, fd, {
-                headers: { 'Content-Type': 'multipart/form-data' },
-              });
-            } catch { /* photo upload failed, item still created */ }
+          if (newItem?.id) {
+            await syncItemPhotos(newItem.id, [], _pendingPhotos);
+            qc.invalidateQueries({ queryKey: ['items'] });
           }
           setShowForm(false);
+          setDuplicateSource(null);
         },
       });
     }

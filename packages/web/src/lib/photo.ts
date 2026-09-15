@@ -1,3 +1,5 @@
+import { api } from './api';
+
 export const MAX_PHOTO_BYTES = 10 * 1024 * 1024;
 
 const ACCEPTED = ['.jpg', '.jpeg', '.png', '.webp'];
@@ -36,4 +38,33 @@ export function validatePhotoFile(file: { name: string; size: number }): { ok: b
   }
 
   return { ok: true };
+}
+
+/** Mirrors MAX_PHOTOS_PER_ITEM on the API; the server refuses beyond it anyway. */
+export const MAX_PHOTOS_PER_ITEM = 6;
+
+/**
+ * Apply the gallery changes an admin made in the form.
+ *
+ * Deletions run before additions: swapping all six photos at once would
+ * otherwise be refused by the server's budget check.
+ */
+export async function syncItemPhotos(
+  itemId: number,
+  removedUrls: string[],
+  addedFiles: File[]
+): Promise<void> {
+  for (const url of removedUrls) {
+    await api.delete(`/items/${itemId}/photos`, { data: { url } });
+  }
+
+  if (addedFiles.length === 0) return;
+
+  const body = new FormData();
+  for (const file of addedFiles) {
+    body.append('photos', file);
+  }
+  await api.post(`/items/${itemId}/photos`, body, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
 }

@@ -1,4 +1,4 @@
-import { describe, it, expect, afterEach } from 'vitest';
+import { describe, it, expect, afterEach, beforeAll, vi } from 'vitest';
 import { render, screen, within, cleanup } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import ItemForm from './ItemForm';
@@ -6,6 +6,11 @@ import ItemForm from './ItemForm';
 // Testing Library only auto-registers cleanup when vitest globals are on;
 // this config keeps imports explicit, so unmount between tests by hand.
 afterEach(cleanup);
+
+// jsdom has no object URLs; the gallery previews pending files with one.
+beforeAll(() => {
+  Object.defineProperty(URL, 'createObjectURL', { value: () => 'blob:preview', writable: true });
+});
 
 const categories = [
   { id: 1, nom: 'Cables', sousCategories: [{ id: 10, nom: 'VGA/HDMI' }] },
@@ -64,5 +69,51 @@ describe('ItemForm category selection', () => {
 
     expect(categorySelect.value).toBe('2');
     expect(subSelect.value).toBe('');
+  });
+});
+
+function renderWithPhotos(photoUrls: string[], onSave: (d: Record<string, unknown>) => void = () => {}) {
+  render(
+    <ItemForm
+      item={{ id: 1, nom: 'Sono', photoUrls }}
+      categories={categories}
+      localisations={localisations}
+      onSave={onSave}
+      isSaving={false}
+      onCancel={() => {}}
+    />
+  );
+}
+
+describe('ItemForm photo gallery', () => {
+  it('shows every existing photo of the item', () => {
+    renderWithPhotos(['/uploads/photos/a.jpg', '/uploads/photos/b.jpg']);
+
+    expect(screen.getAllByRole('img')).toHaveLength(2);
+  });
+
+  it('counts the photos against the limit', () => {
+    renderWithPhotos(['/uploads/photos/a.jpg']);
+
+    expect(screen.getByText('1/6')).toBeTruthy();
+  });
+
+  it('reports a removed photo without touching the server', async () => {
+    const onSave = vi.fn();
+    renderWithPhotos(['/uploads/photos/a.jpg'], onSave);
+
+    await userEvent.click(screen.getByLabelText('Retirer la photo 1'));
+    await userEvent.click(screen.getByRole('button', { name: 'Modifier' }));
+
+    expect(onSave.mock.calls[0][0]._removedPhotoUrls).toEqual(['/uploads/photos/a.jpg']);
+  });
+
+  it('stops offering the add button once the item is full', () => {
+    renderWithPhotos([
+      '/uploads/photos/a.jpg', '/uploads/photos/b.jpg', '/uploads/photos/c.jpg',
+      '/uploads/photos/d.jpg', '/uploads/photos/e.jpg', '/uploads/photos/f.jpg',
+    ]);
+
+    expect(screen.getByRole('button', { name: /Ajouter des photos/ })).toHaveProperty('disabled', true);
   });
 });
