@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { resolveUploadsRoot } from '../config/paths.js';
+import { resolveUploadsRoot } from '../shared/uploads.js';
 
 // Where config/paths.{ts,js} sits in each layout.
 const SRC_LAYOUT = '/srv/fonda-resa/packages/api/src/config';

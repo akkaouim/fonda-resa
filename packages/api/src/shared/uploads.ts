@@ -1,3 +1,5 @@
+import path from 'path';
+
 /** Upload ceiling for item photos. Phone cameras routinely produce 5-8 Mo. */
 export const MAX_PHOTO_BYTES = 10 * 1024 * 1024;
 
@@ -71,4 +73,24 @@ export async function discardUploadedFiles(
   await Promise.all(
     files.map((file) => unlink(file.path).catch(() => { /* already gone */ }))
   );
+}
+
+/**
+ * Resolve the uploads directory from a setting and the caller's own location.
+ *
+ * Anchored to the calling module, never to `process.cwd()`: `npm run dev:api`
+ * runs with the working directory at packages/api while the container runs it
+ * at the repo root, so a cwd-relative setting resolves to two different places.
+ *
+ * `configDir` is always <root>/packages/api/{src,dist}/config, hence four
+ * levels up to reach the repository root in either layout.
+ *
+ * It lives here, in a module that imports nothing, rather than beside the
+ * value it computes: config/paths.ts pulls in config/env.ts, which validates
+ * the environment and exits the process when a variable is missing. A test
+ * importing it would die on a machine with no .env — as CI did.
+ */
+export function resolveUploadsRoot(setting: string, configDir: string): string {
+  if (path.isAbsolute(setting)) return setting;
+  return path.resolve(configDir, '../../../..', setting);
 }
