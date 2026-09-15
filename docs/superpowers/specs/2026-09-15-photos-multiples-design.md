@@ -155,9 +155,10 @@ mais planteraient à l'exécution s'ils n'étaient pas mis à jour.
 
 Côté API, en fonctions pures : `checkPhotoBudget` aux bornes (0+6 accepté,
 5+2 refusé, message citant la limite), et la règle de validation d'URL avant
-effacement. Le nettoyage des fichiers après un refus de budget est vérifié par
-un test qui compte les fichiers présents dans le dossier d'upload avant et
-après un appel refusé.
+effacement. Le nettoyage des fichiers après un refus reçoit sa fonction
+d'effacement en paramètre, ce qui permet de le vérifier sans disque ni serveur :
+le projet n'a pas d'outillage de test d'intégration, et en ajouter un
+dépasserait ce périmètre.
 
 Côté web : l'ajout de plusieurs fichiers d'un coup, le retrait d'une vignette,
 le refus au-delà de six, le fait que rien ne parte avant l'enregistrement, et
