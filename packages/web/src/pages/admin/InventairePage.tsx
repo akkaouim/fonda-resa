@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useItems, useCategories, useLocalisations, useCreateItem, useUpdateItem, useDeleteItem, useImportItems } from '../../hooks/useItems';
 import { api } from '../../lib/api';
-import { Search, Plus, X, Upload, Pencil, Trash2, ChevronRight, MapPin, Tags } from 'lucide-react';
+import { Search, Plus, X, Upload, Pencil, Trash2, ChevronRight, MapPin, Tags, Copy } from 'lucide-react';
 import ItemForm from '../../components/admin/ItemForm';
 import ImportWizard from '../../components/admin/ImportWizard';
 import ItemDetail from '../../components/materiel/ItemDetail';
@@ -14,6 +14,8 @@ export default function InventairePage() {
   const [page, setPage] = useState(1);
   const [showForm, setShowForm] = useState(false);
   const [editingItem, setEditingItem] = useState<any>(null);
+  // A duplicate is a prefilled item with no id, so handleSave creates it.
+  const [duplicateSource, setDuplicateSource] = useState<any>(null);
   const [showImport, setShowImport] = useState(false);
   const [showLocalisations, setShowLocalisations] = useState(false);
   const [showCategories, setShowCategories] = useState(false);
@@ -52,8 +54,24 @@ export default function InventairePage() {
     }
   };
 
+  const handleDuplicate = (item: any, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const { id, categorie, sousCategorie, localisation, photoUrl, createdAt, updatedAt, ...copy } = item;
+    setDuplicateSource({
+      ...copy,
+      photoUrl,
+      nom: `${item.nom} (copie)`,
+      // The marking identifies one physical unit; the copy is a different one.
+      marquage: '',
+    });
+    setEditingItem(null);
+    setShowForm(true);
+    setExpandedId(null);
+  };
+
   const handleEdit = (item: any, e: React.MouseEvent) => {
     e.stopPropagation();
+    setDuplicateSource(null);
     setEditingItem(item);
     setShowForm(true);
     setExpandedId(null);
@@ -85,7 +103,7 @@ export default function InventairePage() {
             className="flex items-center gap-2 rounded-md border border-input px-3 py-2 text-sm hover:bg-muted">
             <Upload className="h-4 w-4" /> Importer
           </button>
-          <button onClick={() => { setEditingItem(null); setShowForm(!showForm); setExpandedId(null); }}
+          <button onClick={() => { setEditingItem(null); setDuplicateSource(null); setShowForm(!showForm); setExpandedId(null); }}
             className="flex items-center gap-2 rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90">
             {showForm ? <X className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
             {showForm ? 'Fermer' : 'Ajouter'}
@@ -103,9 +121,9 @@ export default function InventairePage() {
       )}
 
       {showForm && (
-        <ItemForm item={editingItem} categories={categories || []} localisations={localisations || []}
+        <ItemForm item={editingItem ?? duplicateSource} categories={categories || []} localisations={localisations || []}
           onSave={handleSave} isSaving={createItem.isPending || updateItem.isPending}
-          onCancel={() => { setShowForm(false); setEditingItem(null); }} />
+          onCancel={() => { setShowForm(false); setEditingItem(null); setDuplicateSource(null); }} />
       )}
 
       <div className="mb-4 flex gap-2">
@@ -170,10 +188,16 @@ export default function InventairePage() {
                       <td className="px-3 py-2 text-xs text-muted-foreground">{item.localisation?.nom || '—'}</td>
                       <td className="px-3 py-2 text-xs">{item.typeItem === 'consommable' ? 'Conso' : 'Equip'}</td>
                       <td className="px-3 py-2 text-right">
-                        <button onClick={(e) => handleEdit(item, e)} className="mr-2 text-primary hover:text-primary/80" title="Modifier">
+                        <button onClick={(e) => handleDuplicate(item, e)} className="mr-2 text-muted-foreground hover:text-foreground"
+                          title="Dupliquer" aria-label={`Dupliquer ${item.nom}`}>
+                          <Copy className="h-4 w-4" />
+                        </button>
+                        <button onClick={(e) => handleEdit(item, e)} className="mr-2 text-primary hover:text-primary/80"
+                          title="Modifier" aria-label={`Modifier ${item.nom}`}>
                           <Pencil className="h-4 w-4" />
                         </button>
-                        <button onClick={(e) => handleDelete(item, e)} className="text-destructive hover:text-destructive/80" title="Supprimer">
+                        <button onClick={(e) => handleDelete(item, e)} className="text-destructive hover:text-destructive/80"
+                          title="Supprimer" aria-label={`Supprimer ${item.nom}`}>
                           <Trash2 className="h-4 w-4" />
                         </button>
                       </td>

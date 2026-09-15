@@ -127,7 +127,9 @@ export default function ItemForm({ item, categories, localisations, onSave, isSa
 
   return (
     <form onSubmit={handleSubmit} className="mb-6 rounded-lg border border-border p-4 space-y-3">
-      <h2 className="font-medium">{item ? 'Modifier l\'item' : 'Ajouter un item'}</h2>
+      {/* Keyed on the id, not on the object: a duplicate arrives as a prefilled
+          item with no id, and is an addition. */}
+      <h2 className="font-medium">{item?.id ? 'Modifier l\'item' : 'Ajouter un item'}</h2>
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {/* Photo */}
@@ -257,7 +259,7 @@ export default function ItemForm({ item, categories, localisations, onSave, isSa
       <div className="flex gap-2">
         <button type="submit" disabled={isSaving || photoUploading}
           className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50">
-          {isSaving || photoUploading ? 'Enregistrement...' : item ? 'Modifier' : 'Creer'}
+          {isSaving || photoUploading ? 'Enregistrement...' : item?.id ? 'Modifier' : 'Creer'}
         </button>
         <button type="button" onClick={onCancel}
           className="rounded-md border border-input px-4 py-2 text-sm hover:bg-muted">
