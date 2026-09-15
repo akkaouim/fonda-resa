@@ -171,3 +171,52 @@ export function useDeleteLocalisation() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['localisations'] }),
   });
 }
+
+export function useUpdateCategory() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, nom }: { id: number; nom: string }) => {
+      const { data } = await api.put(`/categories/${id}`, { nom });
+      return data.data;
+    },
+    // The inventory table prints the category name, so a rename must refresh it.
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['categories'] });
+      qc.invalidateQueries({ queryKey: ['items'] });
+    },
+  });
+}
+
+export function useDeleteCategory() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: number) => {
+      await api.delete(`/categories/${id}`);
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['categories'] }),
+  });
+}
+
+export function useUpdateSubCategory() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, ...d }: { id: number; nom: string; categorieId: number }) => {
+      const { data } = await api.put(`/categories/sous-categories/${id}`, d);
+      return data.data;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['categories'] });
+      qc.invalidateQueries({ queryKey: ['items'] });
+    },
+  });
+}
+
+export function useDeleteSubCategory() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: number) => {
+      await api.delete(`/categories/sous-categories/${id}`);
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['categories'] }),
+  });
+}

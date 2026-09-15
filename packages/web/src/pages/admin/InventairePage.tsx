@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { useItems, useCategories, useLocalisations, useCreateItem, useUpdateItem, useDeleteItem, useImportItems } from '../../hooks/useItems';
 import { api } from '../../lib/api';
-import { Search, Plus, X, Upload, Pencil, Trash2, ChevronRight, MapPin } from 'lucide-react';
+import { Search, Plus, X, Upload, Pencil, Trash2, ChevronRight, MapPin, Tags } from 'lucide-react';
 import ItemForm from '../../components/admin/ItemForm';
 import ImportWizard from '../../components/admin/ImportWizard';
 import ItemDetail from '../../components/materiel/ItemDetail';
 import LocalisationsPanel from '../../components/admin/LocalisationsPanel';
+import CategoriesPanel from '../../components/admin/CategoriesPanel';
 
 export default function InventairePage() {
   const [search, setSearch] = useState('');
@@ -15,6 +16,7 @@ export default function InventairePage() {
   const [editingItem, setEditingItem] = useState<any>(null);
   const [showImport, setShowImport] = useState(false);
   const [showLocalisations, setShowLocalisations] = useState(false);
+  const [showCategories, setShowCategories] = useState(false);
   const [expandedId, setExpandedId] = useState<number | null>(null);
 
   const { data, isLoading } = useItems({ search: search || undefined, categorieId, page, limit: 50 });
@@ -71,6 +73,10 @@ export default function InventairePage() {
       <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
         <h1 className="text-2xl font-semibold">Inventaire</h1>
         <div className="flex gap-2">
+          <button onClick={() => setShowCategories(!showCategories)}
+            className="flex items-center gap-2 rounded-md border border-input px-3 py-2 text-sm hover:bg-muted">
+            <Tags className="h-4 w-4" /> Categories
+          </button>
           <button onClick={() => setShowLocalisations(!showLocalisations)}
             className="flex items-center gap-2 rounded-md border border-input px-3 py-2 text-sm hover:bg-muted">
             <MapPin className="h-4 w-4" /> Localisations
@@ -86,6 +92,8 @@ export default function InventairePage() {
           </button>
         </div>
       </div>
+
+      {showCategories && <CategoriesPanel onClose={() => setShowCategories(false)} />}
 
       {showLocalisations && <LocalisationsPanel onClose={() => setShowLocalisations(false)} />}
 

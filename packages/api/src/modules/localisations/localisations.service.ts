@@ -1,3 +1,5 @@
+import { countLabel } from '../../shared/counts.js';
+
 /**
  * Decide whether a localisation may be deleted.
  *
@@ -14,13 +16,10 @@ export function checkLocalisationDeletable(
   }
 
   const plural = itemCount > 1;
-  const materiels = plural ? 'materiels y sont' : 'materiel y est';
-  const ranges = plural ? 'ranges' : 'range';
-  const deplacez = plural ? 'Deplacez-les' : 'Deplacez-le';
 
   return {
     ok: false,
-    message: `"${localisation.nom}" ne peut pas etre supprimee : ${itemCount} ${materiels} encore ${ranges}. ${deplacez} avant de supprimer.`,
+    message: `"${localisation.nom}" ne peut pas etre supprimee : ${countLabel(itemCount, 'materiel')} y ${plural ? 'sont' : 'est'} encore range${plural ? 's' : ''}. Deplacez-${plural ? 'les' : 'le'} avant de supprimer.`,
   };
 }
 
