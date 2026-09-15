@@ -1,10 +1,34 @@
-name: CI
+name: CI & Deploy
+
+# One workflow, two jobs: nothing reaches production that has not passed the
+# checks. They used to be separate workflows triggered by the same push, so
+# they ran in parallel and a commit with failing tests deployed anyway.
+#
+# Deploy targets the OVH VPS. The app is built ON the server as a Docker image
+# and fronted by the shared Caddy — see docker-compose.prod.yml.
+#
+# Required repository secrets (Settings > Secrets and variables > Actions):
+#   SSH_PRIVATE_KEY  Private key whose public half is in the VPS user's ~/.ssh/authorized_keys
+#   REMOTE_HOST      VPS IP or hostname (e.g. 217.182.252.25)
+#   REMOTE_USER      SSH user (e.g. ubuntu)
+#   REMOTE_PATH      Deploy dir on the VPS (e.g. /home/ubuntu/fonda-resa)
+#
+# The server keeps its own .env.production (secrets, DB password) — this
+# workflow never uploads or overwrites it.
 
 on:
   push:
     branches: [main]
   pull_request:
     branches: [main]
+  workflow_dispatch:
+
+# Two quick pushes to main would otherwise rsync --delete into the same
+# directory at once. Queue them instead. Keyed by ref so a pull request never
+# holds up a deploy.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
   check:
@@ -27,11 +51,69 @@ jobs:
       - name: Type-check API
         run: npm run typecheck -w packages/api
 
+      # Points at tsconfig.app.json on purpose: packages/web/tsconfig.json is a
+      # solution file with "files": [], so `tsc --noEmit` against it exits 0
+      # without reading a single source file.
       - name: Type-check frontend
-        run: npm run typecheck -w packages/web
+        run: npx tsc --noEmit -p packages/web/tsconfig.app.json
 
-      - name: Run tests
+      - name: Run API tests
         run: npm run test -w packages/api
+
+      - name: Run frontend tests
+        run: npm run test -w packages/web
 
       - name: Build frontend
         run: npm run build:web
+
+  deploy:
+    needs: check
+    # Never from a pull request, and never from a branch other than main — a
+    # manual run used to deploy whatever branch it was dispatched from.
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # Skip gracefully (green, not red) until the deploy secrets are configured.
+      - name: Check deploy secrets are configured
+        id: check
+        run: |
+          if [ -z "${{ secrets.REMOTE_HOST }}" ]; then
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Deploy secrets not set — skipping deploy. Add SSH_PRIVATE_KEY, REMOTE_HOST, REMOTE_USER, REMOTE_PATH."
+          else
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Set up SSH
+        if: steps.check.outputs.configured == 'true'
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H "${{ secrets.REMOTE_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null
+
+      # Sync the repo to the VPS. Excludes generated dirs and, crucially, the
+      # server-side secrets (.env, .env.production) and uploads volume content.
+      - name: Rsync source to VPS
+        if: steps.check.outputs.configured == 'true'
+        run: |
+          rsync -rlz --delete -e "ssh -i ~/.ssh/deploy_key" \
+            --exclude 'node_modules/' --exclude '.git/' \
+            --exclude 'packages/api/dist/' --exclude 'packages/web/dist/' \
+            --exclude 'packages/shared/' --exclude 'uploads/' \
+            --exclude '.env' --exclude '.env.production' --exclude '.DS_Store' \
+            ./ "${{ secrets.REMOTE_USER }}@${{ secrets.REMOTE_HOST }}:${{ secrets.REMOTE_PATH }}/"
+
+      # Rebuild + restart the stack, then apply any new Prisma migrations.
+      - name: Build, restart, migrate
+        if: steps.check.outputs.configured == 'true'
+        run: |
+          ssh -i ~/.ssh/deploy_key "${{ secrets.REMOTE_USER }}@${{ secrets.REMOTE_HOST }}" bash -euo pipefail <<'REMOTE'
+            cd "${{ secrets.REMOTE_PATH }}"
+            docker compose --env-file .env.production -f docker-compose.prod.yml up -d --build
+            docker compose --env-file .env.production -f docker-compose.prod.yml exec -T fonda-resa-api \
+              npx prisma migrate deploy --schema=packages/api/prisma/schema.prisma
+          REMOTE
