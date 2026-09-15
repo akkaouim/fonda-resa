@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { MapPin, Tag, Calendar, Euro, Hash, Image as ImageIcon } from 'lucide-react';
 
 const ETAT_LABELS: Record<string, { label: string; color: string }> = {
@@ -31,6 +32,10 @@ function Field({ label, value, icon: Icon }: { label: string; value: React.React
 }
 
 export default function ItemDetail({ item }: Props) {
+  const photos: string[] = item.photoUrls ?? [];
+  const [mainPhoto, setMainPhoto] = useState(0);
+  const current = photos[mainPhoto] ?? photos[0];
+
   const etat = ETAT_LABELS[item.etat];
   const perimetre = PERIMETRE_LABELS[item.perimetreUtilisation];
   const formatDate = (d: string) => new Date(d).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
@@ -38,12 +43,25 @@ export default function ItemDetail({ item }: Props) {
   return (
     <div className="grid gap-4 sm:grid-cols-[auto_1fr]">
       {/* Photo */}
-      <div className="flex items-start justify-center sm:w-40">
-        {item.photoUrl ? (
-          <img src={item.photoUrl} alt={item.nom} className="max-h-40 rounded-md border border-border object-contain" />
+      <div className="flex flex-col items-center gap-2 sm:w-40">
+        {current ? (
+          <img src={current} alt={item.nom} className="max-h-40 rounded-md border border-border object-contain" />
         ) : (
           <div className="flex h-32 w-32 items-center justify-center rounded-md border border-dashed border-border bg-muted/50">
             <ImageIcon className="h-10 w-10 text-muted-foreground/40" />
+          </div>
+        )}
+
+        {photos.length > 1 && (
+          <div className="flex flex-wrap justify-center gap-1.5">
+            {photos.map((url, i) => (
+              <button key={url} type="button" onClick={() => setMainPhoto(i)}
+                aria-label={`Voir la photo ${i + 1}`}
+                className={`h-10 w-10 overflow-hidden rounded border ${i === mainPhoto ? 'border-primary' : 'border-border'}`}>
+                {/* Decorative: the button already carries the accessible name. */}
+                <img src={url} alt="" className="h-full w-full object-cover" />
+              </button>
+            ))}
           </div>
         )}
       </div>
