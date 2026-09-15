@@ -37,3 +37,38 @@ export function checkPhotoBudget(
     message: `Un item ne peut pas depasser ${MAX_PHOTOS_PER_ITEM} photos. Il reste ${restantes} place(s).`,
   };
 }
+
+export const PHOTO_URL_PREFIX = '/uploads/photos/';
+
+/**
+ * Extract the on-disk filename a photo URL refers to, or null if the URL is
+ * not one we served.
+ *
+ * The URL to delete comes from the client, so without this check the delete
+ * route would unlink any file the process can reach.
+ */
+export function photoFilenameFromUrl(url: string): string | null {
+  if (!url.startsWith(PHOTO_URL_PREFIX)) return null;
+
+  const filename = url.slice(PHOTO_URL_PREFIX.length);
+  if (!filename) return null;
+  if (filename.includes('/') || filename.includes('\\') || filename.includes('..')) return null;
+
+  return filename;
+}
+
+/**
+ * Erase files multer already wrote when the request is going to be refused.
+ *
+ * multer writes to disk while parsing, so a refusal that skipped this would
+ * leave behind exactly the orphans the photo routes exist to avoid. The unlink
+ * is injected so this rule can be tested without touching a filesystem.
+ */
+export async function discardUploadedFiles(
+  files: { path: string }[],
+  unlink: (path: string) => Promise<void>
+): Promise<void> {
+  await Promise.all(
+    files.map((file) => unlink(file.path).catch(() => { /* already gone */ }))
+  );
+}

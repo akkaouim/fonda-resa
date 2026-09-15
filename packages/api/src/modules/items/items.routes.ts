@@ -3,8 +3,9 @@ import { Role, createItemSchema, updateItemSchema } from '../../shared/index.js'
 import { authenticate, authorize } from '../../middleware/auth.js';
 import { asyncHandler } from '../../middleware/async-handler.js';
 import { AppError } from '../../middleware/error-handler.js';
-import { MAX_PHOTO_BYTES } from '../../shared/uploads.js';
+import { MAX_PHOTO_BYTES, MAX_PHOTOS_PER_ITEM, checkPhotoBudget, photoFilenameFromUrl, discardUploadedFiles, PHOTO_URL_PREFIX } from '../../shared/uploads.js';
 import * as itemsService from './items.service.js';
+import { prisma } from '../../config/database.js';
 import multer from 'multer';
 import path from 'path';
 import { env } from '../../config/env.js';
@@ -83,15 +84,62 @@ router.delete('/:id', authenticate, authorize(Role.ADMIN), asyncHandler(async (r
   res.json({ success: true, data: { message: 'Item supprime' } });
 }));
 
-// Upload photo (admin)
-router.post('/:id/photo', authenticate, authorize(Role.ADMIN), upload.single('photo'), asyncHandler(async (req, res) => {
-  if (!req.file) {
-    res.status(400).json({ success: false, error: { code: 'NO_FILE', message: 'Aucun fichier envoye' } });
-    return;
+// Add photos (admin). multer writes the files to disk while parsing, before
+// this handler runs, so anything refused here must be unlinked by hand.
+router.post('/:id/photos', authenticate, authorize(Role.ADMIN), upload.array('photos', MAX_PHOTOS_PER_ITEM), asyncHandler(async (req, res) => {
+  const files = (req.files as Express.Multer.File[] | undefined) ?? [];
+  if (files.length === 0) {
+    throw new AppError(400, 'NO_FILE', 'Aucun fichier envoye');
   }
-  const photoUrl = `/uploads/photos/${req.file.filename}`;
-  const item = await itemsService.updateItem(Number(req.params.id), { photoUrl }, req.user!.sub);
-  res.json({ success: true, data: item });
+
+  const discard = () => discardUploadedFiles(files, (p) => fs.promises.unlink(p));
+
+  const id = Number(req.params.id);
+  const item = await prisma.item.findUnique({ where: { id } });
+  if (!item) {
+    await discard();
+    throw new AppError(404, 'ITEM_NOT_FOUND', 'Item introuvable');
+  }
+
+  const budget = checkPhotoBudget(item.photoUrls.length, files.length);
+  if (!budget.ok) {
+    await discard();
+    throw new AppError(409, 'PHOTO_BUDGET_EXCEEDED', budget.message!);
+  }
+
+  const added = files.map((file) => `${PHOTO_URL_PREFIX}${file.filename}`);
+  const updated = await itemsService.updateItem(id, { photoUrls: [...item.photoUrls, ...added] }, req.user!.sub);
+  res.json({ success: true, data: updated });
+}));
+
+// Remove one photo (admin), from the item and from disk.
+router.delete('/:id/photos', authenticate, authorize(Role.ADMIN), asyncHandler(async (req, res) => {
+  const { url } = req.body as { url?: string };
+  if (!url) {
+    throw new AppError(400, 'NO_URL', 'Aucune photo indiquee');
+  }
+
+  const id = Number(req.params.id);
+  const item = await prisma.item.findUnique({ where: { id } });
+  if (!item) {
+    throw new AppError(404, 'ITEM_NOT_FOUND', 'Item introuvable');
+  }
+  // Only a URL this item actually holds may be deleted.
+  if (!item.photoUrls.includes(url)) {
+    throw new AppError(404, 'PHOTO_NOT_FOUND', 'Photo introuvable sur cet item');
+  }
+
+  const filename = photoFilenameFromUrl(url);
+  if (filename) {
+    await fs.promises.unlink(path.join(env.UPLOAD_DIR, 'photos', filename)).catch(() => { /* already gone */ });
+  }
+
+  const updated = await itemsService.updateItem(
+    id,
+    { photoUrls: item.photoUrls.filter((u) => u !== url) },
+    req.user!.sub
+  );
+  res.json({ success: true, data: updated });
 }));
 
 // Import CSV/Excel (admin)
