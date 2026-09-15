@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { ZodError } from 'zod';
 import { logger } from '../config/logger.js';
+import { multerErrorMessage } from '../shared/uploads.js';
 
 export class AppError extends Error {
   constructor(
@@ -23,6 +24,17 @@ export function errorHandler(err: Error, _req: Request, res: Response, _next: Ne
         message: err.message,
         details: err.details,
       },
+    });
+    return;
+  }
+
+  // Multer throws before the route handler runs, so without this branch every
+  // rejected upload fell through to the generic 500 below.
+  if (err.name === 'MulterError') {
+    const code = (err as { code?: string }).code ?? 'UPLOAD_ERROR';
+    res.status(400).json({
+      success: false,
+      error: { code, message: multerErrorMessage(code) },
     });
     return;
   }

@@ -2,6 +2,8 @@ import { Router } from 'express';
 import { Role, createItemSchema, updateItemSchema } from '../../shared/index.js';
 import { authenticate, authorize } from '../../middleware/auth.js';
 import { asyncHandler } from '../../middleware/async-handler.js';
+import { AppError } from '../../middleware/error-handler.js';
+import { MAX_PHOTO_BYTES } from '../../shared/uploads.js';
 import * as itemsService from './items.service.js';
 import multer from 'multer';
 import path from 'path';
@@ -23,11 +25,18 @@ const storage = multer.diskStorage({
 });
 const upload = multer({
   storage,
-  limits: { fileSize: 5 * 1024 * 1024 },
+  limits: { fileSize: MAX_PHOTO_BYTES },
   fileFilter: (_req, file, cb) => {
     const allowed = ['.jpg', '.jpeg', '.png', '.webp'];
     const ext = path.extname(file.originalname).toLowerCase();
-    cb(null, allowed.includes(ext));
+    if (allowed.includes(ext)) return cb(null, true);
+
+    // Rejecting with `cb(null, false)` drops the file silently, and the route
+    // then blames the user for sending nothing. Say what was actually wrong.
+    const message = ['.heic', '.heif'].includes(ext)
+      ? 'Format HEIC non pris en charge. Convertissez la photo en JPEG.'
+      : 'Format non pris en charge. Utilisez un JPG, un PNG ou un WebP.';
+    cb(new AppError(400, 'UNSUPPORTED_FORMAT', message));
   },
 });
 

@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Upload, X, Image as ImageIcon } from 'lucide-react';
 import { api } from '../../lib/api';
+import { validatePhotoFile } from '../../lib/photo';
 
 interface Props {
   item?: any;
@@ -60,8 +61,10 @@ export default function ItemForm({ item, categories, localisations, onSave, isSa
   const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.size > 5 * 1024 * 1024) {
-      alert('La photo ne doit pas depasser 5 Mo.');
+    const check = validatePhotoFile(file);
+    if (!check.ok) {
+      alert(check.message);
+      if (fileRef.current) fileRef.current.value = '';
       return;
     }
     setPhotoFile(file);
@@ -145,13 +148,13 @@ export default function ItemForm({ item, categories, localisations, onSave, isSa
               </div>
             )}
             <div className="flex-1">
-              <input ref={fileRef} type="file" accept=".jpg,.jpeg,.png,.webp" onChange={handlePhotoSelect} className="hidden" />
+              <input ref={fileRef} type="file" accept="image/*" onChange={handlePhotoSelect} className="hidden" />
               <button type="button" onClick={() => fileRef.current?.click()}
                 className="flex items-center gap-2 rounded-md border border-input px-3 py-2 text-sm hover:bg-muted">
                 <Upload className="h-4 w-4" />
                 {photoPreview ? 'Changer la photo' : 'Ajouter une photo'}
               </button>
-              <p className="mt-1 text-xs text-muted-foreground">JPG, PNG ou WebP. 5 Mo max.</p>
+              <p className="mt-1 text-xs text-muted-foreground">JPG, PNG ou WebP. 10 Mo max.</p>
               {photoUploading && <p className="mt-1 text-xs text-primary">Upload en cours...</p>}
             </div>
           </div>
