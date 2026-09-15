@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { countLabel } from '../shared/counts.js';
+import { countLabel, ACTIVE_ITEMS_ONLY } from '../shared/counts.js';
 import {
   checkCategorieDeletable,
   checkSousCategorieDeletable,
@@ -59,5 +59,19 @@ describe('checkSousCategorieDeletable', () => {
     expect(result.ok).toBe(false);
     expect(result.message).toContain('VGA/HDMI');
     expect(result.message).toContain('3 materiels');
+  });
+});
+
+describe('ACTIVE_ITEMS_ONLY', () => {
+  it('restricts a relation count to items that are still active', () => {
+    expect(ACTIVE_ITEMS_ONLY).toEqual({ where: { actif: true } });
+  });
+
+  it('is the single definition the count sites share', () => {
+    // Deleting an item only flips `actif` to false, so any _count that omits
+    // this filter keeps counting material the admin can no longer see — and
+    // permanently blocks deleting the category or localisation holding it.
+    expect(ACTIVE_ITEMS_ONLY).toBeTypeOf('object');
+    expect(Object.isFrozen(ACTIVE_ITEMS_ONLY)).toBe(true);
   });
 });

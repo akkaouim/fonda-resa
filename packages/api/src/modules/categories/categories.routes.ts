@@ -5,6 +5,7 @@ import { asyncHandler } from '../../middleware/async-handler.js';
 import { AppError } from '../../middleware/error-handler.js';
 import { prisma } from '../../config/database.js';
 import { checkCategorieDeletable, checkSousCategorieDeletable } from './categories.service.js';
+import { ACTIVE_ITEMS_ONLY } from '../../shared/counts.js';
 
 const router = Router();
 
@@ -24,9 +25,9 @@ router.get('/', authenticate, asyncHandler(async (_req, res) => {
     include: {
       sousCategories: {
         orderBy: { nom: 'asc' },
-        include: { _count: { select: { items: true } } },
+        include: { _count: { select: { items: ACTIVE_ITEMS_ONLY } } },
       },
-      _count: { select: { items: true } },
+      _count: { select: { items: ACTIVE_ITEMS_ONLY } },
     },
     orderBy: { nom: 'asc' },
   });
@@ -71,7 +72,8 @@ router.delete('/:id', authenticate, authorize(Role.ADMIN), asyncHandler(async (r
   const id = Number(req.params.id);
   const categorie = await prisma.categorie.findUnique({
     where: { id },
-    include: { _count: { select: { items: true, sousCategories: true } } },
+    // sousCategories has no `actif` column, so only the item count is filtered.
+    include: { _count: { select: { items: ACTIVE_ITEMS_ONLY, sousCategories: true } } },
   });
   if (!categorie) throw notFound('Categorie');
 
@@ -135,7 +137,7 @@ router.delete('/sous-categories/:id', authenticate, authorize(Role.ADMIN), async
   const id = Number(req.params.id);
   const sous = await prisma.sousCategorie.findUnique({
     where: { id },
-    include: { _count: { select: { items: true } } },
+    include: { _count: { select: { items: ACTIVE_ITEMS_ONLY } } },
   });
   if (!sous) throw notFound('Sous-categorie');
 

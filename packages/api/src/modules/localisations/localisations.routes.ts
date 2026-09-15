@@ -5,6 +5,7 @@ import { asyncHandler } from '../../middleware/async-handler.js';
 import { AppError } from '../../middleware/error-handler.js';
 import { prisma } from '../../config/database.js';
 import { checkLocalisationDeletable, normaliseDescription } from './localisations.service.js';
+import { ACTIVE_ITEMS_ONLY } from '../../shared/counts.js';
 
 const router = Router();
 
@@ -23,7 +24,7 @@ function duplicateName(nom: string): AppError {
 router.get('/', authenticate, asyncHandler(async (_req, res) => {
   const localisations = await prisma.localisation.findMany({
     orderBy: { nom: 'asc' },
-    include: { _count: { select: { items: true } } },
+    include: { _count: { select: { items: ACTIVE_ITEMS_ONLY } } },
   });
   res.json({ success: true, data: localisations });
 }));
@@ -65,7 +66,7 @@ router.delete('/:id', authenticate, authorize(Role.ADMIN), asyncHandler(async (r
   const id = Number(req.params.id);
   const localisation = await prisma.localisation.findUnique({
     where: { id },
-    include: { _count: { select: { items: true } } },
+    include: { _count: { select: { items: ACTIVE_ITEMS_ONLY } } },
   });
   if (!localisation) {
     throw new AppError(404, 'LOCALISATION_NOT_FOUND', 'Localisation introuvable');
