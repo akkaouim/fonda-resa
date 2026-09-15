@@ -13,3 +13,27 @@ export function multerErrorMessage(code: string): string {
   }
   return "Le fichier n'a pas pu etre envoye.";
 }
+
+/** A handful of angles is what the gallery is for; storage is a VPS volume. */
+export const MAX_PHOTOS_PER_ITEM = 6;
+
+/**
+ * Decide whether an upload fits in what the item has left.
+ *
+ * Reported as places remaining rather than a bare refusal, because the admin
+ * selects several files at once and needs to know how many to drop.
+ */
+export function checkPhotoBudget(
+  existantes: number,
+  ajoutees: number
+): { ok: boolean; message?: string } {
+  if (existantes + ajoutees <= MAX_PHOTOS_PER_ITEM) {
+    return { ok: true };
+  }
+
+  const restantes = Math.max(0, MAX_PHOTOS_PER_ITEM - existantes);
+  return {
+    ok: false,
+    message: `Un item ne peut pas depasser ${MAX_PHOTOS_PER_ITEM} photos. Il reste ${restantes} place(s).`,
+  };
+}
