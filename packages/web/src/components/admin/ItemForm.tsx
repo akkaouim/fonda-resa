@@ -117,7 +117,10 @@ export default function ItemForm({ item, categories, localisations, onSave, isSa
     onSave(data);
   };
 
-  const set = (key: string, val: any) => setForm({ ...form, [key]: val });
+  // Functional updater, not `{ ...form }`: the category select calls set()
+  // twice in one handler, and a stale closure would make the second call
+  // discard the first.
+  const set = (key: string, val: any) => setForm((f) => ({ ...f, [key]: val }));
 
   return (
     <form onSubmit={handleSubmit} className="mb-6 rounded-lg border border-border p-4 space-y-3">
